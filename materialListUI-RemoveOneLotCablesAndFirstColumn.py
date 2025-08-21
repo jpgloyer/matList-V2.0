@@ -440,7 +440,6 @@ class mainProgram(QMainWindow):
                 
                 
 
-                cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
                 self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
             self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
             self.newPanelName.setText('')
@@ -522,7 +521,8 @@ class mainProgram(QMainWindow):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         matlistTableData = [['' for i in range(self.tableWidget.columnCount()+3)] for j in range(self.tableWidget.rowCount()+3)]
-        matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
+        #matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
+        matlistTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0] + " Material List"
         matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
