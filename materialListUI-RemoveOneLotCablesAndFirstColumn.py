@@ -26,15 +26,12 @@ import traceback
 "#   5. Store master database location in project json file"
 "#   6. Save vs Save As"
 #   7. Change makePDF() length thresholds
-#   8. Choose "One-Lot" by cell, not row (Maybe select "One-Lot" for row, then select either "One-Lot" or zero for each cell)
-#   8b  Fix OneLot in buildInitialTable function
-#   8c  ReDo json so that OneLot is separate from item count (maybe -1 prints as OneLot)
-#   9. Device names do not auto populate from saved file
-
-
-
-
-
+'#   8. Choose "One-Lot" by cell, not row (Maybe select "One-Lot" for row, then select either "One-Lot" or zero for each cell)'
+'#   8b  Fix OneLot in buildInitialTable function'
+'#   9. Device names do not auto populate from saved file'
+#   10. Fix panel name wrapping
+#   11. Implement search item numbers by keyword
+#   12. Allow user to select page orientation and adjust column widths
 
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
@@ -239,6 +236,9 @@ class mainProgram(QMainWindow):
         self.tableWidget.setTabKeyNavigation(False)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
+
+        #self.tableWidget.horizontalHeader().setSectionsMovable(True)
+        #self.tableWidget.setHorizontalHeader(QtCore.Qt.BottomEdge)
 
 
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
@@ -546,9 +546,9 @@ class mainProgram(QMainWindow):
             matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.verticalHeaderItem(rowIndex).text(), styleCustomCenterJustified)
             matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.verticalHeaderItem(rowIndex).text()], styleCustomLeftJustified)
         
-        matlistColumnWidths = [50,200,50]
+        matlistColumnWidths = [40,150,30]
         for i in matlistTableData[0][1:]:
-            matlistColumnWidths.append((self.pageWidth*inch-250)/len(matlistTableData[0][1:]))
+            matlistColumnWidths.append((self.pageWidth*inch-200)/len(matlistTableData[0][1:]))
         matlistTable = Table(matlistTableData, colWidths=matlistColumnWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
