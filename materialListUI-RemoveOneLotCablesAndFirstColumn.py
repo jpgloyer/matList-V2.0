@@ -475,7 +475,7 @@ class mainProgram(QMainWindow):
                 fileDialog.setNameFilters(["Access Database files (*.accdb)"])
                 fileDialog.exec()
                 self.masterMatListPath = fileDialog.selectedFiles()[0]
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescription ORDER BY ItemNo",self.masterMatListPath)
+                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
                 self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
                 
                 for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
@@ -483,7 +483,7 @@ class mainProgram(QMainWindow):
             except:
                 pass
         else:
-            self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescription ORDER BY ItemNo",self.masterMatListPath)
+            self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
             self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
             
             for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
