@@ -505,7 +505,7 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         description = QMessageBox()
         description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
-        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
+        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]].replace('<br/>','\n'))
         description.exec()
 
     def tableItemSelectionChanged(self):
