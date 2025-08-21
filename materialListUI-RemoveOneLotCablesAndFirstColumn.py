@@ -339,7 +339,7 @@ class mainProgram(QMainWindow):
         for column, panel in enumerate(self.columnHeaders):
             self.outputDictionary[panel] = {}
             for row, item in enumerate(self.uniqueItemNumbers):
-                self.outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value()} #Fill this dict using one-line method
+                self.outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
 
         self.outputDictionary['revisions'] = self.revisionData
         self.outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
@@ -538,10 +538,10 @@ class mainProgram(QMainWindow):
                 else:
                     matlistTableData[rowIndex+3][columnIndex+3] = Paragraph('<br/>'.join([str(self.tableWidget.cellWidget(rowIndex,columnIndex).countSelect.value()),'<br/>'.join([i.text() for i in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])])+'<br/>'+self.tableWidget.cellWidget(rowIndex,columnIndex).note,styleCustomCenterJustified)
         #Fill Total Cells    
-            if True in [self.tableWidget.cellWidget(rowIndex, columnIndex).oneLotCheckBox.isChecked() for columnIndex in range(1,self.tableWidget.columnCount())]:
+            if True in [self.tableWidget.cellWidget(rowIndex, columnIndex).oneLotCheckBox.isChecked() for columnIndex in range(0,self.tableWidget.columnCount())]:
                 matlistTableData[rowIndex+3][2] = Paragraph('1 Lot',styleCustomCenterJustified)
             else:  
-                matlistTableData[rowIndex+3][2] = Paragraph(str(sum([self.tableWidget.cellWidget(rowIndex, columnIndex).countSelect.value() for columnIndex in range(1,self.tableWidget.columnCount())])), styleCustomCenterJustified)
+                matlistTableData[rowIndex+3][2] = Paragraph(str(sum([self.tableWidget.cellWidget(rowIndex, columnIndex).countSelect.value() for columnIndex in range(0,self.tableWidget.columnCount())])), styleCustomCenterJustified)
         #Fill Item Numbers and Descriptions
             matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.verticalHeaderItem(rowIndex).text(), styleCustomCenterJustified)
             matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.verticalHeaderItem(rowIndex).text()], styleCustomLeftJustified)
@@ -611,31 +611,37 @@ class customTableWidgetItem(QWidget):
         self.tableWidget = tableWidget
         self.deviceNames = [QLineEdit() for i in deviceNames]
 
-        self.buildCheckBoxes()
-        self.buildCountSelect(count)    
         self.buildDeviceNames(deviceNames)
         self.buildLayout()
+        self.buildCheckBoxes()
+        self.buildCountSelect(count)    
         self.updateDeviceNameSlots()
 
+    def buildCheckBoxes(self):
+        self.oneLotCheckBox.clicked.connect(self.updateOneLot)
+        self.showDeviceNamesCheckBox.clicked.connect(self.updateDeviceNameSlots)
+        if len(self.deviceNames) > 0:
+            self.showDeviceNamesCheckBox.setChecked(True)
+
     def buildCountSelect(self, count):
-        self.countSelect = QSpinBox()
         self.countSelect.setMaximum(999)
         self.countSelect.valueChanged.connect(self.spinBoxChanged)
         self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
-        self.countSelect.setValue(count)
+        if count == '1 Lot':
+            self.oneLotCheckBox.setChecked(True)
+            self.updateOneLot()
+        else:
+            self.countSelect.setValue(count)
         
     def buildDeviceNames(self, deviceNames):
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
             self.deviceNames[i].editingFinished.connect(self.lineEditFinished)
 
-    def buildCheckBoxes(self):
-        self.oneLotCheckBox = QCheckBox("One Lot")
-        self.oneLotCheckBox.clicked.connect(self.updateOneLot)
-        self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
-        self.showDeviceNamesCheckBox.clicked.connect(self.updateDeviceNameSlots)
-
     def buildLayout(self):
+        self.oneLotCheckBox = QCheckBox("One Lot")
+        self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
+        self.countSelect = QSpinBox()
         self.layout1 = QGridLayout()
         self.layout1.addWidget(self.countSelect,0,0)
         for i in range(len(self.deviceNames)):
