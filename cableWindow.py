@@ -94,18 +94,28 @@ class cableWindow(QMainWindow):
         self.cableTable.removeRow(self.cableTable.currentRow())
 
     def closeEvent(self,event):
-        pass
-        #self.developOutputDictionary()
-        #self.signals.saveCableData.emit()
+        self.developOutputDictionary()
+        self.signals.saveCableData.emit()
 
     def developOutputDictionary(self):
-        for key in self.cableData.keys():
-            self.cableData[key] = []
+        self.cableData = []
         for rowIndex in range(self.cableTable.rowCount()):
-            for columnIndex, column in enumerate(self.cableData.keys()):
-                self.cableData[column].append(self.cableTable.item(rowIndex, columnIndex).text())
-
-
+            cable = {}
+            cable["itemNo"] = self.cableTable.item(rowIndex,0).text()
+            cable["cableType"] = self.cableTable.cellWidget(rowIndex,1).currentText()
+            cable["length"] = self.cableTable.cellWidget(rowIndex,2).value()
+            cable["from"] = {}
+            cable["from"]["relayType"] = self.cableTable.cellWidget(rowIndex,3).relayType.currentText()
+            cable["from"]["deviceNo"] = self.cableTable.cellWidget(rowIndex,3).deviceName.currentText()
+            cable["from"]["port"] = self.cableTable.cellWidget(rowIndex,3).port.currentText()
+            cable["from"]["panelNo"] = self.cableTable.cellWidget(rowIndex,3).panelNo.currentText()
+            cable["to"] = {}
+            cable["to"]["relayType"] = self.cableTable.cellWidget(rowIndex,4).relayType.currentText()
+            cable["to"]["deviceNo"] = self.cableTable.cellWidget(rowIndex,4).deviceName.currentText()
+            cable["to"]["port"] = self.cableTable.cellWidget(rowIndex,4).port.currentText()
+            cable["to"]["panelNo"] = self.cableTable.cellWidget(rowIndex,4).panelNo.currentText()
+            self.cableData.append(cable)
+        print(self.cableData)
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
