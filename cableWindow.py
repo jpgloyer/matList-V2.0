@@ -56,12 +56,12 @@ class cableWindow(QMainWindow):
 
         
         for rowIndex in range(len(self.cableData)):
-            if self.cableTable.rowCount() < rowIndex + 1:
+            if self.cableTable.rowCount() < rowIndex:
                 self.cableTable.insertRow(self.cableTable.rowCount())
 
             self.addCable(self.cableData[rowIndex])
 
-    def addCable(self, cable = {"itemNo":"","cableType":"","length":"0","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}):
+    def addCable(self, cable = False):
         if cable == False:
             cable = {"itemNo":"","cableType":"","length":"0","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
         self.cableTable.insertRow(self.cableTable.rowCount())
@@ -110,8 +110,8 @@ class cableWindow(QMainWindow):
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
     signals = signalClass()
-    #application = cableWindow(signals,[{"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relaytype":"","deviceNo":"","port":"","panelNo":""}}])
-    application = cableWindow(signals,[])
+    application = cableWindow(signals,[{"itemNo":"","cableType":"C489","length":10,"from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}])
+    #application = cableWindow(signals,[])
     
     application.show()
     sys.exit(app.exec())
