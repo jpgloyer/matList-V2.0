@@ -76,7 +76,7 @@ class cableWindow(QMainWindow):
 
     def addCable(self, cable = False):
         if cable == False:
-            cable = {"itemNo":"","cableType":"","length":"0","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
+            cable = {"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
         self.cableTable.insertRow(self.cableTable.rowCount())
         rowIndex = self.cableTable.rowCount()-1
         
@@ -145,36 +145,3 @@ class cableWindow(QMainWindow):
     def addCustomItemToComboBox(self,item,comboBox):
         pass
 
-
-def queryDatabase(self, query = "", databaseLocation = ""):
-        databaseConnectionInfo = ("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};""DBQ="+databaseLocation)
-        try: 
-            connection = pyodbc.connect(databaseConnectionInfo)
-            cursor = connection.cursor()
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            columns = [column[0] for column in cursor.description]
-            data = pd.DataFrame.from_records(rows, columns=columns)
-        finally:
-            if 'connection' in locals() and connection:
-                connection.close()
-        return data.values.tolist()
-        #return [item[0] for item in data.values.tolist()]
-
-
-if  __name__ == "__main__":
-    app = QApplication(sys.argv)
-    signals = signalClass()
-    #cableOption = queryDatabase()
-    application = cableWindow(signals,
-                              cableData=[{"itemNo":"","cableType":"C965","length":"15",#From existing project
-                                          "from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},
-                                          "to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}],
-                              routingOptions={"relayTypes":["311C","311L"], "deviceNames":["21P","21B"], "panelNos":["1","2"]},#From main matlist table
-                              cableOptions=[{"itemNo":"215G","cableType":"C489","length":"10"},#From database query
-                                            {"itemNo":"215H","cableType":"C489","length":"15"},
-                                            {"itemNo":"203E","cableType":"C965","length":"10"}])
-    #application = cableWindow(signals,[])
-    
-    application.show()
-    sys.exit(app.exec())

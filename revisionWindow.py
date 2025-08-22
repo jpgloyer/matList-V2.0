@@ -75,14 +75,3 @@ class revisionWindow(QMainWindow):
             for columnIndex, column in enumerate(self.revisionData.keys()):
                 self.revisionData[column].append(self.revisionTable.item(rowIndex, columnIndex).text())
 
-class signalClass(QWidget):
-    needsSaved = QtCore.pyqtSignal(bool)
-    saveRevisionData = QtCore.pyqtSignal()
-
-
-if  __name__ == "__main__":
-    app = QApplication(sys.argv)
-    signals = signalClass()
-    application = revisionWindow(signals)
-    application.show()
-    sys.exit(app.exec())

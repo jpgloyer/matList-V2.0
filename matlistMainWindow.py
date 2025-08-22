@@ -554,11 +554,6 @@ class signalClass(QWidget):
     saveCableData = QtCore.pyqtSignal()
 
 
-
-
-
-        
-
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
     application = mainProgram()

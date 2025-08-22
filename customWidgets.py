@@ -100,7 +100,6 @@ class customCableTableItem(QWidget):
 
         self.buildLayout()
    
-
     def buildLayout(self):
         self.layout1 = QGridLayout()
         self.relayType = QComboBox()
