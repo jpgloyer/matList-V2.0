@@ -5,12 +5,22 @@ import sys
 from matlistMainWindow import signalClass
 from customWidgets import customCableTableItem
 
+import pyodbc
+import pandas as pd
+
 
 class cableWindow(QMainWindow):
-    def __init__(self, signals, cableData = []):
+    def __init__(self, signals, cableData = [], routingOptions = {"relayTypes":[], "deviceNames":[], "panelNos":[]}, cableOptions = [{"itemNo":"","cableType":"","length":""}]):
         super(cableWindow,self).__init__()
         self.signals = signals
         self.cableData = cableData
+        self.relayTypes = routingOptions["relayTypes"]
+        self.deviceNames = routingOptions["deviceNames"]
+        self.panelNos = routingOptions["panelNos"]
+
+        self.cableItemNos = [cable["itemNo"] for cable in cableOptions]
+        self.cableTypes = [cable["cableType"] for cable in cableOptions]
+        self.cableLengths = [cable["length"] for cable in cableOptions]
 
         self.buildWindow()
         self.initializeCableTable()
@@ -71,21 +81,23 @@ class cableWindow(QMainWindow):
         self.cableTable.setItem(rowIndex, 0,item)
 
         item = QComboBox()
-        item.addItem(cable["cableType"])
-        item.setCurrentIndex(0)
-        #item.addothercableoptions
+        for cableType in set(self.cableTypes):
+            item.addItem(cableType)
+        item.setCurrentIndex(self.cableTypes.index(cable["cableType"]) if cable["cableType"] in self.cableTypes else 0)
         self.cableTable.setCellWidget(rowIndex, 1, item)
 
-        item = QSpinBox()
-        item.setValue(0)
-        item.setRange(0,1000)
-        item.setValue(int(cable["length"]))
+        item = QComboBox()
+        for length in set(self.cableLengths):
+            item.addItem(length)
+        item.setCurrentIndex(self.cableLengths.index(cable["length"]) if cable["length"] in self.cableLengths else 0)
         self.cableTable.setCellWidget(rowIndex, 2, item)
 
         item = customCableTableItem(self.signals,self.cableTable, cable["from"])
+        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         self.cableTable.setCellWidget(rowIndex, 3, item)
 
         item = customCableTableItem(self.signals,self.cableTable, cable["to"])
+        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         self.cableTable.setCellWidget(rowIndex, 4, item)
 
         pass
@@ -103,7 +115,7 @@ class cableWindow(QMainWindow):
             cable = {}
             cable["itemNo"] = self.cableTable.item(rowIndex,0).text()
             cable["cableType"] = self.cableTable.cellWidget(rowIndex,1).currentText()
-            cable["length"] = self.cableTable.cellWidget(rowIndex,2).value()
+            cable["length"] = self.cableTable.cellWidget(rowIndex,2).currentText()
             cable["from"] = {}
             cable["from"]["relayType"] = self.cableTable.cellWidget(rowIndex,3).relayType.currentText()
             cable["from"]["deviceNo"] = self.cableTable.cellWidget(rowIndex,3).deviceName.currentText()
@@ -115,12 +127,40 @@ class cableWindow(QMainWindow):
             cable["to"]["port"] = self.cableTable.cellWidget(rowIndex,4).port.currentText()
             cable["to"]["panelNo"] = self.cableTable.cellWidget(rowIndex,4).panelNo.currentText()
             self.cableData.append(cable)
-        print(self.cableData)
+        
+    def getItemNoFromDesc(self,cabletype,cableLength):
+        pass
+
+    def getDescFromItemNo(self,itemNo):
+        pass
+
+    def addCustomItemToComboBox(self,item,comboBox):
+        pass
+
+
+def queryDatabase(self, query = "", databaseLocation = ""):
+        databaseConnectionInfo = ("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};""DBQ="+databaseLocation)
+        try: 
+            connection = pyodbc.connect(databaseConnectionInfo)
+            cursor = connection.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            columns = [column[0] for column in cursor.description]
+            data = pd.DataFrame.from_records(rows, columns=columns)
+        finally:
+            if 'connection' in locals() and connection:
+                connection.close()
+        return data.values.tolist()
+        #return [item[0] for item in data.values.tolist()]
+
 
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
     signals = signalClass()
-    application = cableWindow(signals,[{"itemNo":"","cableType":"C489","length":10,"from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}])
+    application = cableWindow(signals,
+                              cableData=[{"itemNo":"","cableType":"C489","length":10,"from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}],
+                              routingOptions={"relayTypes":["311C","311L"], "deviceNames":["21P","21B"], "panelNos":["1","2"]},
+                              cableOptions=[{"itemNo":"215G","cableType":"C489","length":"10"},{"itemNo":"215H","cableType":"C489","length":"15"},{"itemNo":"203E","cableType":"C965","length":"10"}])
     #application = cableWindow(signals,[])
     
     application.show()

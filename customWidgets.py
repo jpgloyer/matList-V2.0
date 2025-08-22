@@ -131,3 +131,15 @@ class customCableTableItem(QWidget):
         self.setLayout(self.layout1)
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeRowsToContents)
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeColumnsToContents)
+
+    def fillOptions(self, relayTypes, deviceNames, panelNos):
+        self.relayType.clear()
+        self.deviceName.clear()
+        self.port.clear()
+        self.panelNo.clear()
+        for relayType in relayTypes:
+            self.relayType.addItem(relayType)
+        for deviceName in deviceNames:
+            self.deviceName.addItem(deviceName)
+        for panel in panelNos:
+            self.panelNo.addItem(panel)
