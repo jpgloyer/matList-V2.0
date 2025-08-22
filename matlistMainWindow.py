@@ -1,6 +1,6 @@
 #NOT RELEASED FOR USE
 from screeninfo import get_monitors
-import csv, os, re, json, sys
+import os, re, json, sys
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
@@ -10,103 +10,23 @@ from reportlab.lib.pagesizes import inch
 from reportlab.platypus import Paragraph, Table, PageBreak, PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfgen.canvas import Canvas
+
 
 import pyodbc
 import pandas as pd
 
 import traceback
+from revisionWindow import revisionWindow
+from customWidgets import customTableWidgetItem
+from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, NumberedPageCanvas17x11
 
-#To-Do: 
-"Quotes represent finished tasks"
-#   1. Add Bug Report Feature (save log to X:\ELEC\Pierce G\MaterialListBugs)
-"#   2. Cancel Save causes crash"
-#   3. Re-do cable page
-"#   4. Link to access database for master list"
-"#   5. Store master database location in project json file"
-"#   6. Save vs Save As"
-#   7. Change makePDF() length thresholds
-'#   8. Choose "One-Lot" by cell, not row (Maybe select "One-Lot" for row, then select either "One-Lot" or zero for each cell)'
-'#   8b  Fix OneLot in buildInitialTable function'
-'#   9. Device names do not auto populate from saved file'
-#   10. Fix panel name wrapping
-#   11. Implement search item numbers by keyword
-#   12. Allow user to select page orientation and adjust column widths
+
 
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
 #Main Windows
-class revisionWindow(QMainWindow):
-    def __init__(self, signals, revisionData: dict = {"date":[],"user":[],"description":[]}):
-        super(revisionWindow,self).__init__()
-        self.signals = signals
-        self.revisionData = revisionData
 
-        self.monitor = get_monitors()
-        self.monitorXSize = int(self.monitor[0].width)
-        self.monitorYSize = int(self.monitor[0].height)
-        self.xShift = int(self.monitorXSize*.1)
-        self.yShift = int(self.monitorYSize*.1)
-        self.xSize = int(self.monitorXSize*.8)
-        self.ySize = int(self.monitorYSize*.8)
-        self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
-
-        self.revisionTable = QTableWidget()
-        self.dockMenuButtonAddRevision = QPushButton()
-        self.dockMenuButtonRemoveRevision = QPushButton()
-        self.printOutput = QPushButton()
-        self.dockMenuLayout = QFormLayout()
-        self.dockMenuWidget = QWidget()
-        self.dockMenu = QDockWidget()
-
-
-        self.dockMenuButtonAddRevision.setText('Add Revision')
-        self.dockMenuButtonAddRevision.clicked.connect(self.addRevision)
-        self.dockMenuButtonRemoveRevision.setText('Remove Currently Selected Revision')
-        self.dockMenuButtonRemoveRevision.clicked.connect(self.removeRevision)
-        self.dockMenuLayout.addRow(self.dockMenuButtonAddRevision)
-        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveRevision)
-        #self.dockMenuLayout.addRow(self.printOutput)
-        self.revisionTable.setColumnCount(len(self.revisionData))
-
-        self.revisionTable.setHorizontalHeaderLabels(self.revisionData.keys())
-        self.revisionTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
-
-
-        self.dockMenuWidget.setLayout(self.dockMenuLayout)
-        self.dockMenu.setWidget(self.dockMenuWidget)
-        self.setCentralWidget(self.revisionTable)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
-        self.fillTable()
-
-    def fillTable(self):
-        for rowIndex, row in enumerate(self.revisionData['date']):
-            self.revisionTable.insertRow(self.revisionTable.rowCount())
-            for columnIndex, column in enumerate(self.revisionData.keys()):
-                item = QTableWidgetItem()
-                item.setText(self.revisionData[column][rowIndex])
-                self.revisionTable.setItem(self.revisionTable.rowCount()-1,columnIndex,item)
-
-    def addRevision(self):
-        self.revisionTable.insertRow(self.revisionTable.rowCount())
-        for columnIndex, column in enumerate(self.revisionData.keys()):
-            item = QTableWidgetItem()
-            self.revisionTable.setItem(self.revisionTable.rowCount()-1,columnIndex,item)
-
-    def removeRevision(self):
-        self.revisionTable.removeRow(self.revisionTable.currentRow())
-
-    def closeEvent(self,event):
-        self.developOutputDictionary()
-        self.signals.saveRevisionData.emit()
-
-    def developOutputDictionary(self):
-        for key in self.revisionData.keys():
-            self.revisionData[key] = []
-        for rowIndex in range(self.revisionTable.rowCount()):
-            for columnIndex, column in enumerate(self.revisionData.keys()):
-                self.revisionData[column].append(self.revisionTable.item(rowIndex, columnIndex).text())
 
 class mainProgram(QMainWindow):
     def __init__(self):
@@ -564,7 +484,7 @@ class mainProgram(QMainWindow):
         for rowIndex in range(len(list(self.revisionData['date']))):
             row = [Paragraph(str(self.revisionData[key][rowIndex]), styleCustomCenterJustified) for key in self.revisionData.keys()]
             revisionTableData.append(row)
-        revisionTable = Table(revisionTableData, colWidths=[50, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
+        revisionTable = Table(revisionTableData, colWidths=[75, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
         return revisionTable
 
     def makePDF(self):
@@ -601,158 +521,15 @@ class mainProgram(QMainWindow):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
 
-#Custom Widgets for Main Table
-class customTableWidgetItem(QWidget):
-    def __init__(self,signalClass, tableWidget, count=0,deviceNames=[], coordinates=(), note = ''):
-        super(customTableWidgetItem,self).__init__()
-        self.signals=signalClass
-        self.coordinates = coordinates
-        self.note = note
-        self.tableWidget = tableWidget
-        self.deviceNames = [QLineEdit() for i in deviceNames]
-
-        self.buildDeviceNames(deviceNames)
-        self.buildLayout()
-        self.buildCheckBoxes()
-        self.buildCountSelect(count)    
-        self.updateDeviceNameSlots()
-
-    def buildCheckBoxes(self):
-        self.oneLotCheckBox.clicked.connect(self.updateOneLot)
-        self.showDeviceNamesCheckBox.clicked.connect(self.updateDeviceNameSlots)
-        if len(self.deviceNames) > 0:
-            self.showDeviceNamesCheckBox.setChecked(True)
-
-    def buildCountSelect(self, count):
-        self.countSelect.setMaximum(999)
-        self.countSelect.valueChanged.connect(self.spinBoxChanged)
-        self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
-        if count == '1 Lot':
-            self.oneLotCheckBox.setChecked(True)
-            self.updateOneLot()
-        else:
-            self.countSelect.setValue(count)
-        
-    def buildDeviceNames(self, deviceNames):
-        for i in range(len(deviceNames)):
-            self.deviceNames[i].setText(deviceNames[i])
-            self.deviceNames[i].editingFinished.connect(self.lineEditFinished)
-
-    def buildLayout(self):
-        self.oneLotCheckBox = QCheckBox("One Lot")
-        self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
-        self.countSelect = QSpinBox()
-        self.layout1 = QGridLayout()
-        self.layout1.addWidget(self.countSelect,0,0)
-        for i in range(len(self.deviceNames)):
-            self.layout1.addWidget(self.deviceNames[i],i+2,0,1,2)
-        self.layout1.addWidget(self.oneLotCheckBox, 0, 1)
-        self.layout1.addWidget(self.showDeviceNamesCheckBox, 1, 1)
-        self.setLayout(self.layout1)
-        
-    def updateOneLot(self):
-        if self.oneLotCheckBox.isChecked():
-            self.countSelect.setValue(0)
-            self.countSelect.setDisabled(True)
-            self.showDeviceNamesCheckBox.setChecked(False)
-            self.showDeviceNamesCheckBox.setDisabled(True)
-            self.updateDeviceNameSlots()
-        else:
-            self.countSelect.setDisabled(False)
-            self.showDeviceNamesCheckBox.setDisabled(False)
-
-    def updateDeviceNameSlots(self):
-        if self.showDeviceNamesCheckBox.isChecked():
-            while self.countSelect.value() != len(self.deviceNames):
-                if self.countSelect.value() > len(self.deviceNames):
-                    self.addDeviceNameSlot()
-                if self.countSelect.value() < len(self.deviceNames):
-                    self.removeDeviceNameSlot()    
-        else:
-            while len(self.deviceNames) > 0:
-                self.removeDeviceNameSlot()
-        QtCore.QTimer.singleShot(0, self.tableWidget.resizeRowsToContents)
-        QtCore.QTimer.singleShot(0, self.tableWidget.resizeColumnsToContents)
-
-    def addDeviceNameSlot(self):
-        self.deviceNames.append(QLineEdit())
-        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,2)
-        self.signals.needsSaved.emit(True)
-
-    def removeDeviceNameSlot(self):
-        self.layout1.removeWidget(self.deviceNames[-1])
-        self.deviceNames.pop()
-        self.signals.needsSaved.emit(True)
-
-    def spinBoxChanged(self):
-        self.signals.needsSaved.emit(True)
-
-    def lineEditFinished(self):
-        self.signals.needsSaved.emit(True)
 
         
 #Signals
 class signalClass(QWidget):
     needsSaved = QtCore.pyqtSignal(bool)
     saveRevisionData = QtCore.pyqtSignal()
+    saveCableData = QtCore.pyqtSignal()
 
-#PDF Classes
-class NumberedPageCanvas8x11(Canvas):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pages = []
-    def showPage(self):
-        self.pages.append(dict(self.__dict__))
-        self._startPage()
-    def save(self):
-        page_count = len(self.pages)
-        for page in self.pages:
-            self.__dict__.update(page)
-            self.draw_page_number(page_count)
-            super().showPage()
-        super().save()
-    def draw_page_number(self, page_count):
-        page = "Page %s of %s" % (self._pageNumber, page_count)
-        self.setFont("Helvetica", 8)
-        self.drawRightString(8.25 * inch, 0.22 * inch, page)
 
-class NumberedPageCanvas11x8(Canvas):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pages = []
-    def showPage(self):
-        self.pages.append(dict(self.__dict__))
-        self._startPage()
-    def save(self):
-        page_count = len(self.pages)
-        for page in self.pages:
-            self.__dict__.update(page)
-            self.draw_page_number(page_count)
-            super().showPage()
-        super().save()
-    def draw_page_number(self, page_count):
-        page = "Page %s of %s" % (self._pageNumber, page_count)
-        self.setFont("Helvetica", 8)
-        self.drawRightString(10.75 * inch, 0.22 * inch, page)
-
-class NumberedPageCanvas17x11(Canvas):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pages = []
-    def showPage(self):
-        self.pages.append(dict(self.__dict__))
-        self._startPage()
-    def save(self):
-        page_count = len(self.pages)
-        for page in self.pages:
-            self.__dict__.update(page)
-            self.draw_page_number(page_count)
-            super().showPage()
-        super().save()
-    def draw_page_number(self, page_count):
-        page = "Page %s of %s" % (self._pageNumber, page_count)
-        self.setFont("Helvetica", 8)
-        self.drawRightString(16.75 * inch, 0.22 * inch, page)
 
 
 
