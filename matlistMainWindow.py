@@ -375,8 +375,9 @@ class mainProgram(QMainWindow):
             self.loosePanelPresent = True
 
     def getCableOptions(self):
-
-        return [{"itemNo":"","cableType":"","length":"0"}]
+        cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
+        
+        return [{"itemNo":cableOptions[i][0],"cableType":cableOptions[i][1],"length":str(cableOptions[i][2])} for i in range(len(cableOptions))]
 
     def getCableRoutingOptions(self):
         return {"relayTypes":[], "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
