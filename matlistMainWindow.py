@@ -147,6 +147,7 @@ class mainProgram(QMainWindow):
     def getUniqueItemNumbers(self,data):
         self.uniqueItemNumbers = [item for item in data[list(data.keys())[0]] if item != 'description']
         self.uniqueItemNumbers.sort(key=naturalSortKey)
+        return self.uniqueItemNumbers
 
     def buildInitialTable(self, data):
 
@@ -374,10 +375,20 @@ class mainProgram(QMainWindow):
             self.saved = False
             self.loosePanelPresent = True
 
+    #def getCableOptions(self):
+    #    cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
+    #    return [{"itemNo":cableOptions[i][0],"cableType":cableOptions[i][1],"length":str(cableOptions[i][2])} for i in range(len(cableOptions))]
+
     def getCableOptions(self):
         cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
-        
-        return [{"itemNo":cableOptions[i][0],"cableType":cableOptions[i][1],"length":str(cableOptions[i][2])} for i in range(len(cableOptions))]
+        itemNumbers = [cableOptions[i][0].lstrip() for i in range(len(cableOptions))]
+        cableTypes = [cableOptions[i][1] for i in range(len(cableOptions))]
+        cableLengths = [cableOptions[i][2] for i in range(len(cableOptions))]
+
+        availableCableNumbers = list(set(itemNumbers)&set(self.uniqueItemNumbers))
+        availableCableTypes = [cableTypes[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
+        availableCableLengths = [cableLengths[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
+        return [{"itemNo":availableCableNumbers[i],"cableType":availableCableTypes[i],"length":str(availableCableLengths[i])} for i in range(len(availableCableNumbers))]
 
     def getRelayTypes(self):
         return []
