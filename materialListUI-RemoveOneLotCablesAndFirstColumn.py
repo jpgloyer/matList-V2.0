@@ -26,12 +26,15 @@ import traceback
 "#   5. Store master database location in project json file"
 "#   6. Save vs Save As"
 #   7. Change makePDF() length thresholds
-'#   8. Choose "One-Lot" by cell, not row (Maybe select "One-Lot" for row, then select either "One-Lot" or zero for each cell)'
-'#   8b  Fix OneLot in buildInitialTable function'
-'#   9. Device names do not auto populate from saved file'
-#   10. Fix panel name wrapping
-#   11. Implement search item numbers by keyword
-#   12. Allow user to select page orientation and adjust column widths
+#   8. Choose "One-Lot" by cell, not row (Maybe select "One-Lot" for row, then select either "One-Lot" or zero for each cell)
+#   8b  Fix OneLot in buildInitialTable function
+#   8c  ReDo json so that OneLot is separate from item count (maybe -1 prints as OneLot)
+#   9. Device names do not auto populate from saved file
+
+
+
+
+
 
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
@@ -237,9 +240,6 @@ class mainProgram(QMainWindow):
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
 
-        #self.tableWidget.horizontalHeader().setSectionsMovable(True)
-        #self.tableWidget.setHorizontalHeader(QtCore.Qt.BottomEdge)
-
 
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             for columnIndex, column in enumerate(self.columnHeaders):
@@ -440,6 +440,7 @@ class mainProgram(QMainWindow):
                 
                 
 
+                cell.showDevices = self.tableWidget.cellWidget(row,0).deviceNames.isChecked()
                 self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
             self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
             self.newPanelName.setText('')
@@ -475,7 +476,7 @@ class mainProgram(QMainWindow):
                 fileDialog.setNameFilters(["Access Database files (*.accdb)"])
                 fileDialog.exec()
                 self.masterMatListPath = fileDialog.selectedFiles()[0]
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescription ORDER BY ItemNo",self.masterMatListPath)
                 self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
                 
                 for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
@@ -483,7 +484,7 @@ class mainProgram(QMainWindow):
             except:
                 pass
         else:
-            self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+            self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescription ORDER BY ItemNo",self.masterMatListPath)
             self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
             
             for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
@@ -505,7 +506,7 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         description = QMessageBox()
         description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
-        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]].replace('<br/>','\n'))
+        description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]])
         description.exec()
 
     def tableItemSelectionChanged(self):
@@ -521,8 +522,7 @@ class mainProgram(QMainWindow):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         matlistTableData = [['' for i in range(self.tableWidget.columnCount()+3)] for j in range(self.tableWidget.rowCount()+3)]
-        #matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
-        matlistTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0]
+        matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
         matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
@@ -546,9 +546,9 @@ class mainProgram(QMainWindow):
             matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.verticalHeaderItem(rowIndex).text(), styleCustomCenterJustified)
             matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.verticalHeaderItem(rowIndex).text()], styleCustomLeftJustified)
         
-        matlistColumnWidths = [40,150,30]
+        matlistColumnWidths = [50,200,50]
         for i in matlistTableData[0][1:]:
-            matlistColumnWidths.append((self.pageWidth*inch-200)/len(matlistTableData[0][1:]))
+            matlistColumnWidths.append((self.pageWidth*inch-250)/len(matlistTableData[0][1:]))
         matlistTable = Table(matlistTableData, colWidths=matlistColumnWidths, repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),
@@ -584,7 +584,7 @@ class mainProgram(QMainWindow):
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
-        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomLeftJustified)
+        self.revisionNumber = Paragraph(f'Rev. {len([self.revisionData["date"]])-1}', styleCustomLeftJustified)
         template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
         elements = []
         elements.append(matlistTable)
