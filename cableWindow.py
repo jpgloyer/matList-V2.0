@@ -2,7 +2,7 @@ from screeninfo import get_monitors
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 import sys
-from matlistMainWindow import signalClass
+#from matlistMainWindow import signalClass
 from customWidgets import customCableTableItem
 
 import pyodbc
@@ -14,13 +14,15 @@ class cableWindow(QMainWindow):
         super(cableWindow,self).__init__()
         self.signals = signals
         self.cableData = cableData
-        self.relayTypes = routingOptions["relayTypes"]
-        self.deviceNames = routingOptions["deviceNames"]
-        self.panelNos = routingOptions["panelNos"]
+        self.relayTypes = [""]+routingOptions["relayTypes"]
+        self.deviceNames = [""]+routingOptions["deviceNames"]
+        self.panelNos = [""]+routingOptions["panelNos"]
 
-        self.cableItemNos = [cable["itemNo"] for cable in cableOptions]
-        self.cableTypes = [cable["cableType"] for cable in cableOptions]
-        self.cableLengths = [cable["length"] for cable in cableOptions]
+        self.cableOptions = cableOptions
+        self.cableTypes = list(dict.fromkeys([""]+[cable["cableType"] for cable in cableOptions]))
+        self.cableLengths = list(dict.fromkeys([""]+[cable["length"] for cable in cableOptions]))
+
+
 
         self.buildWindow()
         self.initializeCableTable()
@@ -81,15 +83,15 @@ class cableWindow(QMainWindow):
         self.cableTable.setItem(rowIndex, 0,item)
 
         item = QComboBox()
-        for cableType in set(self.cableTypes):
+        for cableType in self.cableTypes:
             item.addItem(cableType)
-        item.setCurrentIndex(self.cableTypes.index(cable["cableType"]) if cable["cableType"] in self.cableTypes else 0)
+        item.setCurrentIndex(self.cableTypes.index(cable["cableType"]))
         self.cableTable.setCellWidget(rowIndex, 1, item)
 
         item = QComboBox()
-        for length in set(self.cableLengths):
+        for length in self.cableLengths:
             item.addItem(length)
-        item.setCurrentIndex(self.cableLengths.index(cable["length"]) if cable["length"] in self.cableLengths else 0)
+        item.setCurrentIndex(self.cableLengths.index(cable["length"]))
         self.cableTable.setCellWidget(rowIndex, 2, item)
 
         item = customCableTableItem(self.signals,self.cableTable, cable["from"])
@@ -157,10 +159,15 @@ def queryDatabase(self, query = "", databaseLocation = ""):
 if  __name__ == "__main__":
     app = QApplication(sys.argv)
     signals = signalClass()
+    #cableOption = queryDatabase()
     application = cableWindow(signals,
-                              cableData=[{"itemNo":"","cableType":"C489","length":10,"from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}],
-                              routingOptions={"relayTypes":["311C","311L"], "deviceNames":["21P","21B"], "panelNos":["1","2"]},
-                              cableOptions=[{"itemNo":"215G","cableType":"C489","length":"10"},{"itemNo":"215H","cableType":"C489","length":"15"},{"itemNo":"203E","cableType":"C965","length":"10"}])
+                              cableData=[{"itemNo":"","cableType":"C965","length":"15",#From existing project
+                                          "from":{"relayType":"311C","deviceNo":"21P","port":"2","panelNo":"1"},
+                                          "to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}],
+                              routingOptions={"relayTypes":["311C","311L"], "deviceNames":["21P","21B"], "panelNos":["1","2"]},#From main matlist table
+                              cableOptions=[{"itemNo":"215G","cableType":"C489","length":"10"},#From database query
+                                            {"itemNo":"215H","cableType":"C489","length":"15"},
+                                            {"itemNo":"203E","cableType":"C965","length":"10"}])
     #application = cableWindow(signals,[])
     
     application.show()

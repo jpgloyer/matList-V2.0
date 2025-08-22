@@ -17,6 +17,7 @@ import pandas as pd
 
 import traceback
 from revisionWindow import revisionWindow
+from cableWindow import cableWindow
 from customWidgets import customTableWidgetItem
 from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, NumberedPageCanvas17x11
 
@@ -44,6 +45,7 @@ class mainProgram(QMainWindow):
         #Signal/Function Connections
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveRevisionData.connect(self.saveRevisionData)
+        self.signals.saveCableData.connect(self.saveCableData)
         #Keyboard Shortcut/Function Connections
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
@@ -76,6 +78,7 @@ class mainProgram(QMainWindow):
             data = self.buildNewMatlist()
 
         self.revisionData = data['revisions']
+        self.cableData = data['cables']
 
         self.buildMainWindow()
         #self.getUniqueItemNumbers(data)
@@ -116,12 +119,13 @@ class mainProgram(QMainWindow):
         self.columnHeaders = []
         data = {}
         data['revisions'] = {"date":[],"user":[],"description":[]}
+        data['cables'] = []
         data['miscellaneousInfo'] = {"masterMatListPath":""}
         return data
     
     def excludedColumnHeaders(self):
         "Returns a list of JSON headers that do not represent panels (or loose)"
-        return ["revisions", "miscellaneousInfo"]
+        return ["revisions","cables", "miscellaneousInfo"]
 
     def importProject(self, inputFile):
         "REFACTORED"
@@ -188,6 +192,7 @@ class mainProgram(QMainWindow):
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
         self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
+        self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
         #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
 
         self.dockLayout = QFormLayout()
@@ -202,6 +207,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.addLooseButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.revisionDataWindowButton)
+        self.dockLayout.addRow(self.cableDataWindowButton)
         #self.dockLayout.addRow(self.selectMasterMatlistButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.saveButton)
@@ -239,6 +245,9 @@ class mainProgram(QMainWindow):
     def needsSaved(self):
         self.saved = False
 
+    def saveCableData(self):
+        self.cableData = self.cableDataWindow.cableData
+        self.saved = False
 
     def saveRevisionData(self):
         self.revisionData = self.revisionDataWindow1.revisionData
@@ -248,30 +257,29 @@ class mainProgram(QMainWindow):
     def getAllDeviceNames(self):
         deviceNames = []
         for rowIndex in range(len(self.uniqueItemNumbers)):
-            for columnIndex in range(len(self.columnHeaders[1:])):
-                deviceNames.extend([deviceName.text() for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex+1).deviceNames])
+            for columnIndex in range(len(self.columnHeaders)):
+                deviceNames.extend([deviceName.text() for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])
         return deviceNames
         
     def developOutputDictionary(self):
         "REFACTORED"
-        self.outputDictionary = {}
+        outputDictionary = {}
 
         for column, panel in enumerate(self.columnHeaders):
-            self.outputDictionary[panel] = {}
+            outputDictionary[panel] = {}
             for row, item in enumerate(self.uniqueItemNumbers):
-                self.outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
+                outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
 
-        self.outputDictionary['revisions'] = self.revisionData
-        self.outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
+        outputDictionary['revisions'] = self.revisionData
+        outputDictionary['cables'] = self.cableData
+        outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
+        return outputDictionary
 
     def saveJSONFile(self):
-        self.developOutputDictionary()
+        
         with open(self.matListFileName,'w') as outfile:
-            json.dump(self.outputDictionary,outfile)
+            json.dump(self.developOutputDictionary(),outfile)
 
-        '''Saves with form:
-        {'|Panel|':{'description':'|panel description|','|item number|':{'count':'|count|','names':'|[names]|','description':'|item description|'}}}'''
-    
 #Right Dock Functions
     def addItem(self):
         if self.dockItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
@@ -294,7 +302,6 @@ class mainProgram(QMainWindow):
             self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
             self.newFile = False
 
-        self.developOutputDictionary()
         self.saveJSONFile()
         self.makePDF()
         self.saved = True
@@ -367,10 +374,20 @@ class mainProgram(QMainWindow):
             self.saved = False
             self.loosePanelPresent = True
 
+    def getCableOptions(self):
+
+        return [{"itemNo":"","cableType":"","length":"0"}]
+
+    def getCableRoutingOptions(self):
+        return {"relayTypes":[], "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
 
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
         self.revisionDataWindow1.show()
+
+    def showCableData(self):
+        self.cableDataWindow = cableWindow(self.signals,self.cableData,self.getCableRoutingOptions(),self.getCableOptions())
+        self.cableDataWindow.show()
 
     def queryDatabase(self, query = "", databaseLocation = ""):
         databaseConnectionInfo = ("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};""DBQ="+databaseLocation)
@@ -403,11 +420,14 @@ class mainProgram(QMainWindow):
             except:
                 pass
         else:
-            self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
-            self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-            
-            for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-                self.dockItemSelect.addItem(item)
+            try:
+                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
+                
+                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
+                    self.dockItemSelect.addItem(item)
+            except:
+                pass
 
 #Parent Function Redefinitions
     def closeEvent(self,event):
