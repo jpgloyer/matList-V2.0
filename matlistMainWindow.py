@@ -379,8 +379,11 @@ class mainProgram(QMainWindow):
         
         return [{"itemNo":cableOptions[i][0],"cableType":cableOptions[i][1],"length":str(cableOptions[i][2])} for i in range(len(cableOptions))]
 
+    def getRelayTypes(self):
+        return []
+
     def getCableRoutingOptions(self):
-        return {"relayTypes":[], "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
+        return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
 
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)

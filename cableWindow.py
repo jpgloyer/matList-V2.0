@@ -19,6 +19,7 @@ class cableWindow(QMainWindow):
         self.panelNos = [""]+routingOptions["panelNos"]
 
         self.cableOptions = cableOptions
+        self.itemNos = list(dict.fromkeys([""]+[cable["itemNo"] for cable in cableOptions]))
         self.cableTypes = list(dict.fromkeys([""]+[cable["cableType"] for cable in cableOptions]))
         self.cableLengths = list(dict.fromkeys([""]+[cable["length"] for cable in cableOptions]))
 
@@ -78,9 +79,12 @@ class cableWindow(QMainWindow):
             cable = {"itemNo":"","cableType":"","length":"0","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
         self.cableTable.insertRow(self.cableTable.rowCount())
         rowIndex = self.cableTable.rowCount()-1
-        item = QTableWidgetItem()
-        item.setText(cable["itemNo"])
-        self.cableTable.setItem(rowIndex, 0,item)
+        
+        item = QComboBox()
+        for itemNo in self.itemNos:
+            item.addItem(itemNo)
+        item.setCurrentText(cable["itemNo"])
+        self.cableTable.setCellWidget(rowIndex, 0, item)
 
         item = QComboBox()
         for cableType in self.cableTypes:
@@ -96,10 +100,12 @@ class cableWindow(QMainWindow):
 
         item = customCableTableItem(self.signals,self.cableTable, cable["from"])
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
+        item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, 3, item)
 
         item = customCableTableItem(self.signals,self.cableTable, cable["to"])
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
+        item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, 4, item)
 
         pass
@@ -115,7 +121,7 @@ class cableWindow(QMainWindow):
         self.cableData = []
         for rowIndex in range(self.cableTable.rowCount()):
             cable = {}
-            cable["itemNo"] = self.cableTable.item(rowIndex,0).text()
+            cable["itemNo"] = self.cableTable.cellWidget(rowIndex,0).currentText()
             cable["cableType"] = self.cableTable.cellWidget(rowIndex,1).currentText()
             cable["length"] = self.cableTable.cellWidget(rowIndex,2).currentText()
             cable["from"] = {}

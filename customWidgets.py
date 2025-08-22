@@ -137,9 +137,17 @@ class customCableTableItem(QWidget):
         self.deviceName.clear()
         self.port.clear()
         self.panelNo.clear()
+        for i in range(100):
+            self.port.addItem(str(i))
         for relayType in relayTypes:
             self.relayType.addItem(relayType)
         for deviceName in deviceNames:
             self.deviceName.addItem(deviceName)
         for panel in panelNos:
             self.panelNo.addItem(panel)
+
+    def setCurrentValues(self):
+        self.relayType.setCurrentText(self.cable["relayType"])
+        self.deviceName.setCurrentText(self.cable["deviceNo"])
+        self.port.setCurrentText(self.cable["port"])
+        self.panelNo.setCurrentText(self.cable["panelNo"])
