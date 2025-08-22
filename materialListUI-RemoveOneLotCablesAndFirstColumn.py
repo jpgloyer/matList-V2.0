@@ -584,7 +584,7 @@ class mainProgram(QMainWindow):
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
-        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData)-1}', styleCustomLeftJustified)
+        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData["date"])-1}', styleCustomLeftJustified)
         template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
         elements = []
         elements.append(matlistTable)
