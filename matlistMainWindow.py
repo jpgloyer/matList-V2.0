@@ -26,9 +26,7 @@ from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, Numbered
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
-#Main Windows
-
-
+#MAIN WINDOW
 class mainProgram(QMainWindow):
     def __init__(self):
         super(mainProgram, self).__init__()
@@ -43,10 +41,10 @@ class mainProgram(QMainWindow):
         self.buildMainWindow()
         self.buildInitialTable(self.data)
         self.buildRightDock()
+        self.selectMasterMatlistFile()
         self.saved = True
         self.initComplete = True
 
-    
     #INIT FUNCTIONS
     def declareVariables(self):
         self.masterMatList = {}
@@ -196,9 +194,30 @@ class mainProgram(QMainWindow):
         self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
-
-
-        self.selectMasterMatlistFile()
+    def selectMasterMatlistFile(self):
+        if not self.masterMatListPath:
+            try:
+                fileDialog = QFileDialog()
+                fileDialog.setWindowTitle("Select Master Material List Database")
+                fileDialog.setNameFilters(["Access Database files (*.accdb)"])
+                fileDialog.exec()
+                self.masterMatListPath = fileDialog.selectedFiles()[0]
+                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
+                
+                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
+                    self.dockItemSelect.addItem(item)
+            except:
+                pass
+        else:
+            try:
+                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
+                
+                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
+                    self.dockItemSelect.addItem(item)
+            except:
+                pass
 
     #GETTER FUNCTIONS
     def getUniqueItemNumbers(self,data):
@@ -352,9 +371,7 @@ class mainProgram(QMainWindow):
         self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
         self.cableDataWindow.show()
 
-
-
-
+    #DATABASE FUNCTIONS
     def queryDatabase(self, query = "", databaseLocation = ""):
         databaseConnectionInfo = ("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};""DBQ="+databaseLocation)
         try: 
@@ -368,34 +385,8 @@ class mainProgram(QMainWindow):
             if 'connection' in locals() and connection:
                 connection.close()
         return data.values.tolist()
-        #return [item[0] for item in data.values.tolist()]
 
-    def selectMasterMatlistFile(self):
-        if not self.masterMatListPath:
-            try:
-                fileDialog = QFileDialog()
-                fileDialog.setWindowTitle("Select Master Material List Database")
-                fileDialog.setNameFilters(["Access Database files (*.accdb)"])
-                fileDialog.exec()
-                self.masterMatListPath = fileDialog.selectedFiles()[0]
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
-                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-                
-                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-                    self.dockItemSelect.addItem(item)
-            except:
-                pass
-        else:
-            try:
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
-                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-                
-                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-                    self.dockItemSelect.addItem(item)
-            except:
-                pass
-
-#Parent Function Redefinitions
+    #EVENT INTERCEPTION FUNCTIONS
     def closeEvent(self,event):
         if self.saved == False:
             close = QMessageBox.question(self,'QUIT','Quit Without Saving?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
@@ -404,30 +395,25 @@ class mainProgram(QMainWindow):
             else:
                 event.ignore()
         else:
-            event.accept()
-  
-#Table Events
+            event.accept()  
     def showItemDescription(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         description = QMessageBox()
         description.setWindowTitle(self.uniqueItemNumbers[self.tableWidget.currentRow()])
         description.setText(self.masterMatList[self.uniqueItemNumbers[self.tableWidget.currentRow()]].replace('<br/>','\n'))
         description.exec()
-
     def tableItemSelectionChanged(self):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         if self.tableWidget.rowCount()>0:
-            #self.deleteRow.setText('Delete Item: '+self.tableWidget.cellWidget(self.currentlySelectedCell[0],0).text)
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
             self.deleteRow.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
         self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
 
-#PDF Functions
+    #PDF FUNCTIONS ----------- MAKE THESE A DISTINCT CLASS???
     def makeMatlistTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         matlistTableData = [['' for i in range(self.tableWidget.columnCount()+3)] for j in range(self.tableWidget.rowCount()+3)]
-        #matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
         matlistTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0] + " MATERIAL LIST"
         matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
@@ -463,7 +449,6 @@ class mainProgram(QMainWindow):
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
             ('VALIGN',(0,0),(-1,-1),'TOP')])
         return matlistTable
-
     def makeRevisionTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         revisionTableData = [[Paragraph(key.upper(), styleCustomCenterJustified) for key in list(self.data['revisions'].keys())]]
@@ -472,7 +457,6 @@ class mainProgram(QMainWindow):
             revisionTableData.append(row)
         revisionTable = Table(revisionTableData, colWidths=[75, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
         return revisionTable
-
     def makeCableTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         cableTableData = [['' for i in range(11)] for j in range(len(self.data['cables'])+3)]
@@ -516,7 +500,6 @@ class mainProgram(QMainWindow):
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
             ('VALIGN',(0,0),(-1,-1),'TOP')])
         return cableTable
-
     def makePDF(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
@@ -548,14 +531,13 @@ class mainProgram(QMainWindow):
                               (11,8.5):NumberedPageCanvas11x8,
                               (17,11):NumberedPageCanvas17x11}
         doc.build(elements, canvasmaker=canvasSizeSelector[(self.pageWidth,self.pageHeight)])
-
     def drawRevisionNumber(self, canvas, doc):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
 
 
         
-#Signals
+#SIGNALS
 class signalClass(QWidget):
     saveRevisionData = QtCore.pyqtSignal()
     saveCableData = QtCore.pyqtSignal()
