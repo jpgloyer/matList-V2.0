@@ -32,18 +32,14 @@ def naturalSortKey(s):
 class mainProgram(QMainWindow):
     def __init__(self):
         super(mainProgram, self).__init__()
-        
-
         self.declareVariables()
         self.connectSignals()
         self.declareShortcuts()
         self.startupMessage()
-
         if self.newFile == False:
             self.loadExistingFile()
         else:
             self.buildNewMatlist()
-
         self.buildMainWindow()
         self.buildInitialTable(self.data)
         self.buildRightDock()
@@ -51,7 +47,7 @@ class mainProgram(QMainWindow):
         self.initComplete = True
 
     
-
+    #INIT FUNCTIONS
     def declareVariables(self):
         self.masterMatList = {}
         self.masterMatListPath = ""
@@ -63,13 +59,12 @@ class mainProgram(QMainWindow):
         self.uniqueItemNumbers = []
         self.quit = QAction("Quit",self)
         self.newFile = True
-
+        self.data = {}
     def connectSignals(self):
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
         self.quit.triggered.connect(self.closeEvent)
-
     def declareShortcuts(self):
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
@@ -79,7 +74,6 @@ class mainProgram(QMainWindow):
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
-
     def startupMessage(self):
         "REFACTORED"
         newFileDialog = QDialog()
@@ -105,7 +99,6 @@ class mainProgram(QMainWindow):
             self.newFile = False
         if not (newFileRadioButtonYes.isChecked() or newFileRadioButtonNo.isChecked()):
             sys.exit()
-
     def loadExistingFile(self):
         file = QFileDialog()
         file.setNameFilters(["Text files (*.csv *.json)"])
@@ -113,13 +106,16 @@ class mainProgram(QMainWindow):
         try:
             self.matListFileName = file.selectedFiles()[0]
             self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-            self.data = self.importProject(self.matListFileName)
+            with open(self.matListFileName) as jsonFile:
+                self.data = json.load(jsonFile)
+            self.columnHeaders = [header for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"]]
+            self.loosePanelPresent = 'Loose and Not Mounted' in self.data
+            self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
             self.getUniqueItemNumbers(self.data)
         except:
             message = QMessageBox(text='Error Loading File\nNew File Being Created')
             message.exec()
             self.newFile = True
-
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
@@ -128,13 +124,11 @@ class mainProgram(QMainWindow):
         self.data['revisions'] = {"date":[],"user":[],"description":[]}
         self.data['cables'] = []
         self.data['miscellaneousInfo'] = {"masterMatListPath":""}
-
     def buildMainWindow(self):
         self.monitor = get_monitors()
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
-        self.setWindowTitle(f'{filename} Contract List')
-    
+        self.setWindowTitle(f'{filename} Contract List')    
     def buildInitialTable(self, data):
 
         dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
@@ -155,7 +149,6 @@ class mainProgram(QMainWindow):
 
         self.refreshCells()
         self.setCentralWidget(self.tableWidget)
-
     def buildRightDock(self):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
@@ -208,70 +201,60 @@ class mainProgram(QMainWindow):
 
         self.selectMasterMatlistFile()
 
-
-    def excludedColumnHeaders(self):
-        "Returns a list of JSON headers that do not represent panels (or loose)"
-        return ["revisions","cables", "miscellaneousInfo"]
-
-    def importProject(self, inputFile):
-        "REFACTORED"
-        data = {}
-        with open(inputFile) as jsonFile:
-            data = json.load(jsonFile)
-        self.columnHeaders = [header for header in data if header not in self.excludedColumnHeaders()]
-        self.loosePanelPresent = 'Loose and Not Mounted' in data
-        self.masterMatListPath = data["miscellaneousInfo"]["masterMatListPath"]
-
-        return data   
-
-
-
+    #GETTER FUNCTIONS
     def getUniqueItemNumbers(self,data):
         self.uniqueItemNumbers = [item for item in data[list(data.keys())[0]] if item != 'description']
         self.uniqueItemNumbers.sort(key=naturalSortKey)
         return self.uniqueItemNumbers
-
-    
-
-
-
-#Key Shortcut Functions
-    def refreshCells(self):
-        self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.resizeRowsToContents()
-
-    def displayHints(self):
-        hints = QMessageBox()
-        hints.setWindowTitle('Hints')
-        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
-        hints.exec()
-
-    def addCellNote(self):
-        self.saved = False
-        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        noteBox = QInputDialog()
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
-
-#Signal-Triggered Functions
-    def needsSaved(self):
-        self.saved = False
-
-    def saveCableData(self):
-        self.data['cables'] = self.cableDataWindow.cableData
-        self.saved = False
-
-    def saveRevisionData(self):
-        self.data['revisions'] = self.revisionDataWindow1.revisionData
-        self.saved = False
-
-#Utility Functions
     def getAllDeviceNames(self):
         deviceNames = []
         for rowIndex in range(len(self.uniqueItemNumbers)):
             for columnIndex in range(len(self.columnHeaders)):
                 deviceNames.extend([deviceName.text() for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])
         return deviceNames
-        
+    def getCableOptions(self):
+        cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
+        itemNumbers = [cableOptions[i][0].lstrip() for i in range(len(cableOptions))]
+        cableTypes = [cableOptions[i][1] for i in range(len(cableOptions))]
+        cableLengths = [cableOptions[i][2] for i in range(len(cableOptions))]
+        availableCableNumbers = list(set(itemNumbers)&set(self.uniqueItemNumbers))
+        availableCableTypes = [cableTypes[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
+        availableCableLengths = [cableLengths[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
+        return [{"itemNo":availableCableNumbers[i],"cableType":availableCableTypes[i],"length":str(availableCableLengths[i])} for i in range(len(availableCableNumbers))]
+    def getRelayTypes(self):
+        availableRelayShortnames = self.queryDatabase("SELECT [ItemNo], [Short Name] FROM Material WHERE Material.Manufacturer = 'SEL' AND [Short Name] IS NOT NULL ORDER BY Material.ItemNo;",self.masterMatListPath)
+        availableRelayShortnames = list(set([availableRelayShortnames[i][1] for i in range(len(availableRelayShortnames)) if availableRelayShortnames[i][0].lstrip() in self.uniqueItemNumbers]))
+        availableRelayShortnames.sort()
+        return availableRelayShortnames
+    def getCableRoutingOptions(self):
+        return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
+
+    #KEY SHORTCUTS FUNCTIONS
+    def refreshCells(self):
+        self.tableWidget.resizeColumnsToContents()
+        self.tableWidget.resizeRowsToContents()
+    def displayHints(self):
+        hints = QMessageBox()
+        hints.setWindowTitle('Hints')
+        hints.setText('Shortcuts:\n\'R\': Resize Cells to Fit Contents\n\'D\': Show Menu\n\'H\': Display Hints\n\'N\': Add Note to Currently Selected Cell\nDouble-Click Cell: Show Item Description\nType: "<br/>" when entering data to force a new line')
+        hints.exec()
+    def addCellNote(self):
+        self.saved = False
+        self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
+        noteBox = QInputDialog()
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
+
+    #SIGNAL FUNCTIONS
+    def needsSaved(self):
+        self.saved = False
+    def saveCableData(self):
+        self.data['cables'] = self.cableDataWindow.cableData
+        self.saved = False
+    def saveRevisionData(self):
+        self.data['revisions'] = self.revisionDataWindow1.revisionData
+        self.saved = False
+
+    #SAVING FUNCTIONS
     def developOutputDictionary(self):
         "REFACTORED"
         outputDictionary = {}
@@ -285,13 +268,25 @@ class mainProgram(QMainWindow):
         outputDictionary['cables'] = self.data['cables']
         outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
         return outputDictionary
-
     def saveJSONFile(self):
-        
         with open(self.matListFileName,'w') as outfile:
             json.dump(self.developOutputDictionary(),outfile)
+    def save(self):
+        if self.newFile:
+            self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
+            self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
+            self.newFile = False
+        self.saveJSONFile()
+        self.makePDF()
+        self.saved = True
+        message = QMessageBox()
+        message.setText(f'PDF and JSON saved in {os.path.split(self.matListFileName)[0]}')
+        message.exec()
+    def saveAs(self):
+        self.newFile = True
+        self.save()
 
-#Right Dock Functions
+    #DOCK FUNCTIONS
     def addItem(self):
         if self.dockItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -302,30 +297,8 @@ class mainProgram(QMainWindow):
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.refreshCells()
         self.saved = False
-
     def updateAddRowButton(self):
         self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
-
-    def save(self):
-        #try:
-        if self.newFile:
-            self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
-            self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-            self.newFile = False
-
-        self.saveJSONFile()
-        self.makePDF()
-        self.saved = True
-
-        message = QMessageBox()
-        message.setText(f'PDF and JSON saved in {os.path.split(self.matListFileName)[0]}')
-        message.exec()
-
-
-    def saveAs(self):
-        self.newFile = True
-        self.save()
-
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
@@ -336,7 +309,6 @@ class mainProgram(QMainWindow):
         else:
             self.deleteRow.setText(f'')
         self.saved = False
-
     def addPanel(self):        
         self.columnHeaders.append(self.newPanelName.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
@@ -348,14 +320,12 @@ class mainProgram(QMainWindow):
         self.newPanelName.setText('')
         self.refreshCells()
         self.saved = False
-
     def deletePanel(self):
         if self.columnHeaders[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
             self.loosePanelPresent = False
         self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
         self.saved = False
-
     def renamePanel(self):
         newPanelName = QInputDialog()
         newPanelName.setWindowTitle("Rename Panel:")
@@ -364,52 +334,29 @@ class mainProgram(QMainWindow):
         name = newPanelName.textValue()
         self.columnHeaders[self.currentlySelectedCell[1]] = name
         self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
-
     def addLoose(self):
         if not self.loosePanelPresent:
             self.columnHeaders.append('Loose and Not Mounted')
             self.tableWidget.insertColumn(self.tableWidget.columnCount())
             for row in range(self.tableWidget.rowCount()):
                 cell = customTableWidgetItem(self.signals,self.tableWidget, coordinates=(row,self.tableWidget.columnCount()-1))
-                
-                
-
                 self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
             self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
             self.newPanelName.setText('')
             self.refreshCells()
             self.saved = False
             self.loosePanelPresent = True
-
-    def getCableOptions(self):
-        cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
-        itemNumbers = [cableOptions[i][0].lstrip() for i in range(len(cableOptions))]
-        cableTypes = [cableOptions[i][1] for i in range(len(cableOptions))]
-        cableLengths = [cableOptions[i][2] for i in range(len(cableOptions))]
-
-
-        availableCableNumbers = list(set(itemNumbers)&set(self.uniqueItemNumbers))
-        availableCableTypes = [cableTypes[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
-        availableCableLengths = [cableLengths[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
-        return [{"itemNo":availableCableNumbers[i],"cableType":availableCableTypes[i],"length":str(availableCableLengths[i])} for i in range(len(availableCableNumbers))]
-
-    def getRelayTypes(self):
-        availableRelayShortnames = self.queryDatabase("SELECT [ItemNo], [Short Name] FROM Material WHERE Material.Manufacturer = 'SEL' AND [Short Name] IS NOT NULL ORDER BY Material.ItemNo;",self.masterMatListPath)
-        availableRelayShortnames = list(set([availableRelayShortnames[i][1] for i in range(len(availableRelayShortnames)) if availableRelayShortnames[i][0].lstrip() in self.uniqueItemNumbers]))
-        availableRelayShortnames.sort()
-        return availableRelayShortnames
-
-    def getCableRoutingOptions(self):
-
-        return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
-
+            
+    #OTHER WINDOWS
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.data['revisions'])
         self.revisionDataWindow1.show()
-
     def showCableData(self):
         self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
         self.cableDataWindow.show()
+
+
+
 
     def queryDatabase(self, query = "", databaseLocation = ""):
         databaseConnectionInfo = ("DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};""DBQ="+databaseLocation)
