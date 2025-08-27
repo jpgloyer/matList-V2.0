@@ -61,7 +61,6 @@ class mainProgram(QMainWindow):
         self.newFile = True
         self.data = {}
     def connectSignals(self):
-        self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
         self.quit.triggered.connect(self.closeEvent)
@@ -245,8 +244,6 @@ class mainProgram(QMainWindow):
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
     #SIGNAL FUNCTIONS
-    def needsSaved(self):
-        self.saved = False
     def saveCableData(self):
         self.data['cables'] = self.cableDataWindow.cableData
         self.saved = False
@@ -346,7 +343,7 @@ class mainProgram(QMainWindow):
             self.refreshCells()
             self.saved = False
             self.loosePanelPresent = True
-            
+
     #OTHER WINDOWS
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.data['revisions'])
@@ -560,7 +557,6 @@ class mainProgram(QMainWindow):
         
 #Signals
 class signalClass(QWidget):
-    needsSaved = QtCore.pyqtSignal(bool)
     saveRevisionData = QtCore.pyqtSignal()
     saveCableData = QtCore.pyqtSignal()
 
