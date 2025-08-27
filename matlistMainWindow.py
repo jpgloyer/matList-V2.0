@@ -33,7 +33,26 @@ class mainProgram(QMainWindow):
     def __init__(self):
         super(mainProgram, self).__init__()
         
-        #Variable Declarations
+
+        self.declareVariables()
+        self.connectSignals()
+        self.declareShortcuts()
+        self.startupMessage()
+
+        if self.newFile == False:
+            self.loadExistingFile()
+        else:
+            self.buildNewMatlist()
+
+        self.buildMainWindow()
+        self.buildInitialTable(self.data)
+        self.buildRightDock()
+        self.saved = True
+        self.initComplete = True
+
+    
+
+    def declareVariables(self):
         self.masterMatList = {}
         self.masterMatListPath = ""
         self.signals = signalClass()
@@ -42,11 +61,16 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = [0,0]
         self.loosePanelPresent = False
         self.uniqueItemNumbers = []
-        #Signal/Function Connections
+        self.quit = QAction("Quit",self)
+        self.newFile = True
+
+    def connectSignals(self):
         self.signals.needsSaved.connect(self.needsSaved)
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
-        #Keyboard Shortcut/Function Connections
+        self.quit.triggered.connect(self.closeEvent)
+
+    def declareShortcuts(self):
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
         self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
@@ -55,37 +79,6 @@ class mainProgram(QMainWindow):
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
-        self.quit = QAction("Quit",self)
-        self.quit.triggered.connect(self.closeEvent)
-
-
-
-        self.startupMessage()
-        if self.newFile == False:
-            file = QFileDialog()
-            file.setNameFilters(["Text files (*.csv *.json)"])
-            file.exec()
-            try:
-                self.matListFileName = file.selectedFiles()[0]
-                self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-                data = self.importProject(self.matListFileName)
-                self.getUniqueItemNumbers(data)
-            except:
-                message = QMessageBox(text='Error Loading File\nNew File Being Created')
-                message.exec()
-                self.newFile = True
-        if self.newFile == True:
-            data = self.buildNewMatlist()
-
-        self.revisionData = data['revisions']
-        self.cableData = data['cables']
-
-        self.buildMainWindow()
-        #self.getUniqueItemNumbers(data)
-        self.buildInitialTable(data)
-        self.buildRightDock()
-        self.saved = True
-        self.initComplete = True
 
     def startupMessage(self):
         "REFACTORED"
@@ -113,42 +106,35 @@ class mainProgram(QMainWindow):
         if not (newFileRadioButtonYes.isChecked() or newFileRadioButtonNo.isChecked()):
             sys.exit()
 
+    def loadExistingFile(self):
+        file = QFileDialog()
+        file.setNameFilters(["Text files (*.csv *.json)"])
+        file.exec()
+        try:
+            self.matListFileName = file.selectedFiles()[0]
+            self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
+            self.data = self.importProject(self.matListFileName)
+            self.getUniqueItemNumbers(self.data)
+        except:
+            message = QMessageBox(text='Error Loading File\nNew File Being Created')
+            message.exec()
+            self.newFile = True
+
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
         self.columnHeaders = []
-        data = {}
-        data['revisions'] = {"date":[],"user":[],"description":[]}
-        data['cables'] = []
-        data['miscellaneousInfo'] = {"masterMatListPath":""}
-        return data
-    
-    def excludedColumnHeaders(self):
-        "Returns a list of JSON headers that do not represent panels (or loose)"
-        return ["revisions","cables", "miscellaneousInfo"]
-
-    def importProject(self, inputFile):
-        "REFACTORED"
-        data = {}
-        with open(inputFile) as jsonFile:
-            data = json.load(jsonFile)
-        self.columnHeaders = [header for header in data if header not in self.excludedColumnHeaders()]
-        self.loosePanelPresent = 'Loose and Not Mounted' in data
-        self.masterMatListPath = data["miscellaneousInfo"]["masterMatListPath"]
-
-        return data   
+        self.data = {}
+        self.data['revisions'] = {"date":[],"user":[],"description":[]}
+        self.data['cables'] = []
+        self.data['miscellaneousInfo'] = {"masterMatListPath":""}
 
     def buildMainWindow(self):
         self.monitor = get_monitors()
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')
-
-    def getUniqueItemNumbers(self,data):
-        self.uniqueItemNumbers = [item for item in data[list(data.keys())[0]] if item != 'description']
-        self.uniqueItemNumbers.sort(key=naturalSortKey)
-        return self.uniqueItemNumbers
-
+    
     def buildInitialTable(self, data):
 
         dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
@@ -161,9 +147,6 @@ class mainProgram(QMainWindow):
         self.tableWidget.setTabKeyNavigation(False)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
-
-        #self.tableWidget.horizontalHeader().setSectionsMovable(True)
-        #self.tableWidget.setHorizontalHeader(QtCore.Qt.BottomEdge)
 
 
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
@@ -225,6 +208,33 @@ class mainProgram(QMainWindow):
 
         self.selectMasterMatlistFile()
 
+
+    def excludedColumnHeaders(self):
+        "Returns a list of JSON headers that do not represent panels (or loose)"
+        return ["revisions","cables", "miscellaneousInfo"]
+
+    def importProject(self, inputFile):
+        "REFACTORED"
+        data = {}
+        with open(inputFile) as jsonFile:
+            data = json.load(jsonFile)
+        self.columnHeaders = [header for header in data if header not in self.excludedColumnHeaders()]
+        self.loosePanelPresent = 'Loose and Not Mounted' in data
+        self.masterMatListPath = data["miscellaneousInfo"]["masterMatListPath"]
+
+        return data   
+
+
+
+    def getUniqueItemNumbers(self,data):
+        self.uniqueItemNumbers = [item for item in data[list(data.keys())[0]] if item != 'description']
+        self.uniqueItemNumbers.sort(key=naturalSortKey)
+        return self.uniqueItemNumbers
+
+    
+
+
+
 #Key Shortcut Functions
     def refreshCells(self):
         self.tableWidget.resizeColumnsToContents()
@@ -247,11 +257,11 @@ class mainProgram(QMainWindow):
         self.saved = False
 
     def saveCableData(self):
-        self.cableData = self.cableDataWindow.cableData
+        self.data['cables'] = self.cableDataWindow.cableData
         self.saved = False
 
     def saveRevisionData(self):
-        self.revisionData = self.revisionDataWindow1.revisionData
+        self.data['revisions'] = self.revisionDataWindow1.revisionData
         self.saved = False
 
 #Utility Functions
@@ -271,8 +281,8 @@ class mainProgram(QMainWindow):
             for row, item in enumerate(self.uniqueItemNumbers):
                 outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
 
-        outputDictionary['revisions'] = self.revisionData
-        outputDictionary['cables'] = self.cableData
+        outputDictionary['revisions'] = self.data['revisions']
+        outputDictionary['cables'] = self.data['cables']
         outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
         return outputDictionary
 
@@ -311,10 +321,6 @@ class mainProgram(QMainWindow):
         message.setText(f'PDF and JSON saved in {os.path.split(self.matListFileName)[0]}')
         message.exec()
 
-        #except Exception as e:
-        #    message = QMessageBox()
-        #    message.setText(f"Error saving files: {e}")
-        #    message.exec()
 
     def saveAs(self):
         self.newFile = True
@@ -375,10 +381,6 @@ class mainProgram(QMainWindow):
             self.saved = False
             self.loosePanelPresent = True
 
-    #def getCableOptions(self):
-    #    cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
-    #    return [{"itemNo":cableOptions[i][0],"cableType":cableOptions[i][1],"length":str(cableOptions[i][2])} for i in range(len(cableOptions))]
-
     def getCableOptions(self):
         cableOptions = self.queryDatabase("SELECT [Material.ItemNo], [Part Number], [Length] FROM Material WHERE Length <> 0 AND Manufacturer = 'SEL' ORDER BY ItemNo;",self.masterMatListPath)
         itemNumbers = [cableOptions[i][0].lstrip() for i in range(len(cableOptions))]
@@ -402,11 +404,11 @@ class mainProgram(QMainWindow):
         return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
 
     def showRevisionData(self):
-        self.revisionDataWindow1 = revisionWindow(self.signals, self.revisionData)
+        self.revisionDataWindow1 = revisionWindow(self.signals, self.data['revisions'])
         self.revisionDataWindow1.show()
 
     def showCableData(self):
-        self.cableDataWindow = cableWindow(self.signals,self.cableData,self.getCableRoutingOptions(),self.getCableOptions())
+        self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
         self.cableDataWindow.show()
 
     def queryDatabase(self, query = "", databaseLocation = ""):
@@ -486,7 +488,7 @@ class mainProgram(QMainWindow):
         matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
-        matlistTableData[2][2] = Paragraph('Total',styleCustomCenterJustified)
+        matlistTableData[2][2] = Paragraph('TOTAL',styleCustomCenterJustified)
         #Fill Headers
         for panelIndex, panel in enumerate(self.columnHeaders):
             matlistTableData[2][panelIndex+3] = Paragraph(panel, styleCustomCenterJustified)
@@ -520,16 +522,16 @@ class mainProgram(QMainWindow):
 
     def makeRevisionTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
-        revisionTableData = [[Paragraph(key.upper(), styleCustomCenterJustified) for key in list(self.revisionData.keys())]]
-        for rowIndex in range(len(list(self.revisionData['date']))):
-            row = [Paragraph(str(self.revisionData[key][rowIndex]), styleCustomCenterJustified) for key in self.revisionData.keys()]
+        revisionTableData = [[Paragraph(key.upper(), styleCustomCenterJustified) for key in list(self.data['revisions'].keys())]]
+        for rowIndex in range(len(list(self.data['revisions']['date']))):
+            row = [Paragraph(str(self.data['revisions'][key][rowIndex]), styleCustomCenterJustified) for key in self.data['revisions'].keys()]
             revisionTableData.append(row)
         revisionTable = Table(revisionTableData, colWidths=[75, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
         return revisionTable
 
     def makeCableTable(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
-        cableTableData = [['' for i in range(11)] for j in range(len(self.cableData)+3)]
+        cableTableData = [['' for i in range(11)] for j in range(len(self.data['cables'])+3)]
         cableTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0] + " CABLE LIST"
         cableTableData[1][1] = Paragraph("",style=styleCustomCenterJustified)
         cableTableData[1][3] = Paragraph("FROM",style=styleCustomCenterJustified)
@@ -546,7 +548,7 @@ class mainProgram(QMainWindow):
         cableTableData[2][9] = Paragraph("DEVICE TYPE",style=styleCustomCenterJustified)
         cableTableData[2][10] = Paragraph("PORT",style=styleCustomCenterJustified)
 
-        for cableindex, cable in enumerate(self.cableData):
+        for cableindex, cable in enumerate(self.data['cables']):
             cableTableData[cableindex+3][0] = Paragraph(cable['itemNo'],style=styleCustomCenterJustified)
             cableTableData[cableindex+3][1] = Paragraph(cable['cableType'],style=styleCustomCenterJustified)
             cableTableData[cableindex+3][2] = Paragraph(cable['length'],style=styleCustomCenterJustified)
@@ -589,7 +591,7 @@ class mainProgram(QMainWindow):
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
-        self.revisionNumber = Paragraph(f'Rev. {len(self.revisionData["date"])-1}', styleCustomLeftJustified)
+        self.revisionNumber = Paragraph(f'Rev. {len(self.data['revisions']["date"])-1}', styleCustomLeftJustified)
         template1 = PageTemplate(id='test', frames=frame, onPage=self.drawRevisionNumber)        
         elements = []
         elements.append(matlistTable)
