@@ -61,6 +61,7 @@ class mainProgram(QMainWindow):
     def connectSignals(self):
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
+        self.signals.saveCellData.connect(self.saveCellData)
         self.quit.triggered.connect(self.closeEvent)
     def declareShortcuts(self):
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
@@ -268,6 +269,8 @@ class mainProgram(QMainWindow):
         self.saved = False
     def saveRevisionData(self):
         self.data['revisions'] = self.revisionDataWindow1.revisionData
+        self.saved = False
+    def saveCellData(self):
         self.saved = False
 
     #SAVING FUNCTIONS
@@ -541,6 +544,7 @@ class mainProgram(QMainWindow):
 class signalClass(QWidget):
     saveRevisionData = QtCore.pyqtSignal()
     saveCableData = QtCore.pyqtSignal()
+    saveCellData = QtCore.pyqtSignal()
 
 
 if  __name__ == "__main__":

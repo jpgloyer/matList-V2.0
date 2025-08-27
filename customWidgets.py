@@ -78,18 +78,18 @@ class customTableWidgetItem(QWidget):
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
         self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,2)
-        self.signals.needsSaved.emit(True)
+        self.signals.saveCellData.emit()
 
     def removeDeviceNameSlot(self):
         self.layout1.removeWidget(self.deviceNames[-1])
         self.deviceNames.pop()
-        self.signals.needsSaved.emit(True)
+        self.signals.saveCellData.emit()
 
     def spinBoxChanged(self):
-        self.signals.needsSaved.emit(True)
+        self.signals.saveCellData.emit()
 
     def lineEditFinished(self):
-        self.signals.needsSaved.emit(True)
+        self.signals.saveCellData.emit()
 
 class customCableTableItem(QWidget):
     def __init__(self,signalClass, tableWidget, cable = {"relayType":"","deviceNo":"","port":"","panelNo":""}):
