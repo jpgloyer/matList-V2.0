@@ -393,10 +393,7 @@ class mainProgram(QMainWindow):
 
     def getRelayTypes(self):
         availableRelayShortnames = self.queryDatabase("SELECT [ItemNo], [Short Name] FROM Material WHERE Material.Manufacturer = 'SEL' AND [Short Name] IS NOT NULL ORDER BY Material.ItemNo;",self.masterMatListPath)
-        #for item in range(len(availableRelayShortnames)):
-        #    availableRelayShortnames[item][0] = availableRelayShortnames[item][0].lstrip()
         availableRelayShortnames = list(set([availableRelayShortnames[i][1] for i in range(len(availableRelayShortnames)) if availableRelayShortnames[i][0].lstrip() in self.uniqueItemNumbers]))
-
         availableRelayShortnames.sort()
         return availableRelayShortnames
 
@@ -485,7 +482,7 @@ class mainProgram(QMainWindow):
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
         matlistTableData = [['' for i in range(self.tableWidget.columnCount()+3)] for j in range(self.tableWidget.rowCount()+3)]
         #matlistTableData[0][0] = os.path.basename(self.matListFileName).split('.')[0] + " Material List"
-        matlistTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0]
+        matlistTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0] + " MATERIAL LIST"
         matlistTableData[1][2] = Paragraph('QUANTITY / DEVICE NAMES', styleCustomCenterJustified)
         matlistTableData[2][0] = Paragraph('ITEM NO.',styleCustomCenterJustified)
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
@@ -530,6 +527,50 @@ class mainProgram(QMainWindow):
         revisionTable = Table(revisionTableData, colWidths=[75, 50, 400], repeatRows=2, style=[  ('GRID',(0,0),(-1,-1),0.5,colors.black),],hAlign='LEFT')
         return revisionTable
 
+    def makeCableTable(self):
+        styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
+        cableTableData = [['' for i in range(11)] for j in range(len(self.cableData)+3)]
+        cableTableData[0][0] = os.path.splitext(os.path.split(self.matListFileName)[1])[0] + " CABLE LIST"
+        cableTableData[1][1] = Paragraph("",style=styleCustomCenterJustified)
+        cableTableData[1][3] = Paragraph("FROM",style=styleCustomCenterJustified)
+        cableTableData[1][7] = Paragraph("TO",style=styleCustomCenterJustified)
+        cableTableData[1][0] = Paragraph("ITEM NO",style=styleCustomCenterJustified)
+        cableTableData[1][1] = Paragraph("CABLE TYPE",style=styleCustomCenterJustified)
+        cableTableData[1][2] = Paragraph("CABLE LENGTH",style=styleCustomCenterJustified)
+        cableTableData[2][3] = Paragraph("PANEL",style=styleCustomCenterJustified)
+        cableTableData[2][4] = Paragraph("DEVICE NAME",style=styleCustomCenterJustified)
+        cableTableData[2][5] = Paragraph("DEVICE TYPE",style=styleCustomCenterJustified)
+        cableTableData[2][6] = Paragraph("PORT",style=styleCustomCenterJustified)
+        cableTableData[2][7] = Paragraph("PANEL",style=styleCustomCenterJustified)
+        cableTableData[2][8] = Paragraph("DEVICE NAME",style=styleCustomCenterJustified)
+        cableTableData[2][9] = Paragraph("DEVICE TYPE",style=styleCustomCenterJustified)
+        cableTableData[2][10] = Paragraph("PORT",style=styleCustomCenterJustified)
+
+        for cableindex, cable in enumerate(self.cableData):
+            cableTableData[cableindex+3][0] = Paragraph(cable['itemNo'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][1] = Paragraph(cable['cableType'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][2] = Paragraph(cable['length'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][3] = Paragraph(cable['from']['panelNo'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][4] = Paragraph(cable['from']['deviceNo'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][5] = Paragraph(cable['from']['relayType'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][6] = Paragraph(cable['from']['port'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][7] = Paragraph(cable['to']['panelNo'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][8] = Paragraph(cable['to']['deviceNo'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][9] = Paragraph(cable['to']['relayType'],style=styleCustomCenterJustified)
+            cableTableData[cableindex+3][10] = Paragraph(cable['to']['port'],style=styleCustomCenterJustified)
+
+        cableTable = Table(cableTableData, colWidths=[50,60,50,70,70,70,70,70,70,70,70], repeatRows=3, style=[
+            ('GRID',(0,0),(-1,-1),0.5,colors.black),
+            ('SPAN', (0,0), (-1, 0)),#Cable table header
+            ('SPAN', (3,1), (6, 1)),#From header
+            ('SPAN', (7,1), (10, 1)),#To header
+            ('SPAN',(0,1),(0,2)),
+            ('SPAN',(1,1),(1,2)),
+            ('SPAN',(2,1),(2,2)),
+            ('ALIGN',(0,0),(-1,-1),'CENTER'),
+            ('VALIGN',(0,0),(-1,-1),'TOP')])
+        return cableTable
+
     def makePDF(self):
         styleCustomCenterJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=1, fontSize=8)
         styleCustomLeftJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=0, fontSize=8)
@@ -544,6 +585,7 @@ class mainProgram(QMainWindow):
             self.pageHeight = 11
         matlistTable = self.makeMatlistTable()
         revisionTable = self.makeRevisionTable()
+        cableTable = self.makeCableTable()
         pagesize = (self.pageWidth * inch, self.pageHeight * inch)
         doc = BaseDocTemplate(self.pdfFileName, pagesize=pagesize, leftMargin=.25*inch, rightMargin=.25*inch, topMargin=.25*inch, bottomMargin=.25*inch)
         frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
@@ -552,7 +594,8 @@ class mainProgram(QMainWindow):
         elements = []
         elements.append(matlistTable)
         elements.append(PageBreak())
-        #elements.append(PageBreak())
+        elements.append(cableTable)
+        elements.append(PageBreak())
         elements.append(revisionTable)
         doc.addPageTemplates([template1])
         canvasSizeSelector = {(8.5,11):NumberedPageCanvas8x11,
