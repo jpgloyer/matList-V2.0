@@ -4,64 +4,56 @@ from PyQt5 import QtCore
 import sys
 #from matlistMainWindow import signalClass
 from customWidgets import customCableTableItem
+from signals import signalClass
 
+import re
 import pyodbc
 import pandas as pd
 
+def naturalSortKey(s):
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
 class cableWindow(QMainWindow):
     def __init__(self, signals, cableData = [], routingOptions = {"relayTypes":[], "deviceNames":[], "panelNos":[]}, cableOptions = [{"itemNo":"","cableType":"","length":""}]):
         super(cableWindow,self).__init__()
-        self.signals = signals
-        self.cableData = cableData
-        self.relayTypes = [""]+routingOptions["relayTypes"]
-        self.deviceNames = [""]+routingOptions["deviceNames"]
-        self.panelNos = [""]+routingOptions["panelNos"]
+        self.monitor = get_monitors()
+        
+        self.signals: signalClass = signals
 
-        self.cableOptions = cableOptions
-        self.itemNos = list(dict.fromkeys([""]+[cable["itemNo"] for cable in cableOptions]))
-        self.cableTypes = list(dict.fromkeys([""]+[cable["cableType"] for cable in cableOptions]))
-        self.cableLengths = list(dict.fromkeys([""]+[cable["length"] for cable in cableOptions]))
+        self.cableData: list = cableData
 
+        self.relayTypes: list = [""]+routingOptions["relayTypes"]
+        self.deviceNames: list = [""]+routingOptions["deviceNames"]
+        self.panelNos: list = [""]+routingOptions["panelNos"]
 
+        self.cableOptions: list = cableOptions
+        self.itemNos: list = list(dict.fromkeys([""]+[cable["itemNo"] for cable in cableOptions]))
+        self.cableTypes: list = list(dict.fromkeys([""]+[cable["cableType"] for cable in cableOptions]))
+        self.cableLengths: list = list(dict.fromkeys([""]+[cable["length"] for cable in cableOptions]))
+        self.itemNos.sort(key=naturalSortKey)
+        self.cableTypes.sort(key=naturalSortKey)
+        self.cableLengths.sort(key=naturalSortKey)
+
+        self.dockMenu = QDockWidget()
+        self.dockMenuWidget = QWidget()
+        self.dockMenuLayout = QFormLayout()
+        self.dockMenuButtonAddCable = QPushButton("Add Cable",clicked=self.addCable)
+        self.dockMenuButtonRemoveCable = QPushButton("Remove Currently Selected Cable",clicked=self.removeCable)
+        self.cableTable = QTableWidget()
 
         self.buildWindow()
         self.initializeCableTable()
         self.buildDock()
 
-
-        self.printOutput = QPushButton()
-
-    def buildDock(self):
-        self.dockMenu = QDockWidget()
-        self.dockMenuWidget = QWidget()
-
-        self.dockMenuLayout = QFormLayout()
-        self.dockMenuButtonAddCable = QPushButton()
-        self.dockMenuButtonRemoveCable = QPushButton()
-        self.dockMenuButtonAddCable.setText('Add Cable')
-        self.dockMenuButtonAddCable.clicked.connect(self.addCable)
-        self.dockMenuButtonRemoveCable.setText('Remove Currently Selected Cable')
-        self.dockMenuButtonRemoveCable.clicked.connect(self.removeCable)
-        self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
-        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
-        self.dockMenuWidget.setLayout(self.dockMenuLayout)
-
-        self.dockMenu.setWidget(self.dockMenuWidget)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
-
     def buildWindow(self):
-        self.monitor = get_monitors()
-        self.monitorXSize = int(self.monitor[0].width)
-        self.monitorYSize = int(self.monitor[0].height)
-        self.xShift = int(self.monitorXSize*.1)
-        self.yShift = int(self.monitorYSize*.1)
-        self.xSize = int(self.monitorXSize*.8)
-        self.ySize = int(self.monitorYSize*.8)
-        self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
-
+        monitorXSize = int(self.monitor[0].width)
+        monitorYSize = int(self.monitor[0].height)
+        xShift = int(monitorXSize*.1)
+        yShift = int(monitorYSize*.1)
+        xSize = int(monitorXSize*.8)
+        ySize = int(monitorYSize*.8)
+        self.setGeometry(QtCore.QRect(xShift,yShift,xSize,ySize))
     def initializeCableTable(self):
-        self.cableTable = QTableWidget()
         self.cableTable.setColumnCount(5)
         self.cableTable.setHorizontalHeaderLabels(["Item No", "Cable Type", "Length", "From", "To"])
         self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
@@ -69,56 +61,53 @@ class cableWindow(QMainWindow):
         self.cableTable.verticalScrollBar().setSingleStep(20)
         self.setCentralWidget(self.cableTable)
 
-        
         for rowIndex in range(len(self.cableData)):
             if self.cableTable.rowCount() < rowIndex:
                 self.cableTable.insertRow(self.cableTable.rowCount())
-
             self.addCable(self.cableData[rowIndex])
+    def buildDock(self):
+        self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
+        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
+        self.dockMenuWidget.setLayout(self.dockMenuLayout)
+        self.dockMenu.setWidget(self.dockMenuWidget)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
 
     def addCable(self, cable = False):
         if cable == False:
             cable = {"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
         self.cableTable.insertRow(self.cableTable.rowCount())
         rowIndex = self.cableTable.rowCount()-1
-        
         item = QComboBox()
         for itemNo in self.itemNos:
             item.addItem(itemNo)
         item.setCurrentText(cable["itemNo"])
+        item.currentTextChanged.connect(self.itemNoChanged)
         self.cableTable.setCellWidget(rowIndex, 0, item)
-
         item = QComboBox()
         for cableType in self.cableTypes:
             item.addItem(cableType)
         item.setCurrentIndex(self.cableTypes.index(cable["cableType"]))
+        item.currentTextChanged.connect(self.cableTypeChanged)
         self.cableTable.setCellWidget(rowIndex, 1, item)
-
         item = QComboBox()
         for length in self.cableLengths:
             item.addItem(length)
         item.setCurrentIndex(self.cableLengths.index(cable["length"]))
+        item.currentTextChanged.connect(self.cableLengthChanged)
         self.cableTable.setCellWidget(rowIndex, 2, item)
-
         item = customCableTableItem(self.signals,self.cableTable, cable["from"])
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, 3, item)
-
         item = customCableTableItem(self.signals,self.cableTable, cable["to"])
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, 4, item)
-
-        pass
-
     def removeCable(self):
         self.cableTable.removeRow(self.cableTable.currentRow())
-
     def closeEvent(self,event):
         self.developOutputDictionary()
         self.signals.saveCableData.emit()
-
     def developOutputDictionary(self):
         self.cableData = []
         for rowIndex in range(self.cableTable.rowCount()):
@@ -137,13 +126,26 @@ class cableWindow(QMainWindow):
             cable["to"]["port"] = self.cableTable.cellWidget(rowIndex,4).port.currentText()
             cable["to"]["panelNo"] = self.cableTable.cellWidget(rowIndex,4).panelNo.currentText()
             self.cableData.append(cable)
-        
+    
     def getItemNoFromDesc(self,cabletype,cableLength):
-        pass
+        for cable in self.cableOptions:
+            if cabletype == cable["cableType"] and cableLength == cable["length"]:
+                return cable["itemNo"]
+        return None
 
     def getDescFromItemNo(self,itemNo):
+        for cable in self.cableOptions:
+            if itemNo == cable["itemNo"]:
+                return cable["cableType"], cable["length"]
+        return None, None
+
+    def itemNoChanged(self):
         pass
 
-    def addCustomItemToComboBox(self,item,comboBox):
+    def cableTypeChanged(self):
+
+        pass
+
+    def cableLengthChanged(self):
         pass
 

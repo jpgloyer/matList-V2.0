@@ -19,6 +19,7 @@ import traceback
 from revisionWindow import revisionWindow
 from cableWindow import cableWindow
 from customWidgets import customTableWidgetItem
+from signals import signalClass
 from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, NumberedPageCanvas17x11
 
 
@@ -562,10 +563,7 @@ class mainProgram(QMainWindow):
 
         
 #SIGNALS
-class signalClass(QWidget):
-    saveRevisionData = QtCore.pyqtSignal()
-    saveCableData = QtCore.pyqtSignal()
-    saveCellData = QtCore.pyqtSignal()
+
 
 
 if  __name__ == "__main__":
