@@ -39,8 +39,8 @@ class mainProgram(QMainWindow):
         else:
             self.buildNewMatlist()
         self.buildMainWindow()
-        self.buildInitialTable(self.data)
-        self.buildRightDock()
+        self.buildTable(self.data)
+        self.buildDock()
         self.selectMasterMatlistFile()
         self.buildMasterMatList()
         self.saved = True
@@ -114,7 +114,7 @@ class mainProgram(QMainWindow):
         self.quit.triggered.connect(self.closeEvent)
     def connectShortcuts(self):
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
-        self.refreshDockShortcut.activated.connect(self.buildRightDock)
+        self.refreshDockShortcut.activated.connect(self.buildDock)
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
     def startupMessage(self):
@@ -175,13 +175,15 @@ class mainProgram(QMainWindow):
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')    
-    def buildInitialTable(self, data):
+    def buildTable(self, data):
         self.tableWidget.setColumnCount(len(self.panelNames))
         self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
         self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.tableWidget.setTabKeyNavigation(False)
+        self.tableWidget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.tableWidget.verticalScrollBar().setSingleStep(20)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
 
@@ -191,7 +193,7 @@ class mainProgram(QMainWindow):
 
         self.refreshCells()
         self.setCentralWidget(self.tableWidget)
-    def buildRightDock(self):
+    def buildDock(self):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
 

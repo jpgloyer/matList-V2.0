@@ -65,6 +65,8 @@ class cableWindow(QMainWindow):
         self.cableTable.setColumnCount(5)
         self.cableTable.setHorizontalHeaderLabels(["Item No", "Cable Type", "Length", "From", "To"])
         self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.cableTable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.cableTable.verticalScrollBar().setSingleStep(20)
         self.setCentralWidget(self.cableTable)
 
         
