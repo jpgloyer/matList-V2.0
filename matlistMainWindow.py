@@ -73,7 +73,6 @@ class mainProgram(QMainWindow):
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
     def startupMessage(self):
-        "REFACTORED"
         newFileDialog = QDialog()
         newFileDialog.setWindowTitle('New Material List?')
         newFileDialog.setMinimumSize(400,50)
@@ -106,7 +105,8 @@ class mainProgram(QMainWindow):
             self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
             with open(self.matListFileName) as jsonFile:
                 self.data = json.load(jsonFile)
-            self.columnHeaders = [header for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"]]
+            self.panelNames = [header for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"]]
+            self.panelDescriptions = [self.data[header]["description"] for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"] and "description" in self.data[header]]
             self.loosePanelPresent = 'Loose and Not Mounted' in self.data
             self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
             self.getUniqueItemNumbers(self.data)
@@ -117,7 +117,7 @@ class mainProgram(QMainWindow):
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-        self.columnHeaders = []
+        self.panelNames = []
         self.data = {}
         self.data['revisions'] = {"date":[],"user":[],"description":[]}
         self.data['cables'] = []
@@ -129,11 +129,11 @@ class mainProgram(QMainWindow):
         self.setWindowTitle(f'{filename} Contract List')    
     def buildInitialTable(self, data):
 
-        dimensions = [len(self.uniqueItemNumbers),len(self.columnHeaders)]
+        dimensions = [len(self.uniqueItemNumbers),len(self.panelNames)]
         self.tableWidget = QTableWidget()                   
         self.tableWidget.setColumnCount(dimensions[1])
         self.tableWidget.setRowCount(dimensions[0])
-        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.tableWidget.setTabKeyNavigation(False)
@@ -142,7 +142,7 @@ class mainProgram(QMainWindow):
 
 
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
-            for columnIndex, column in enumerate(self.columnHeaders):
+            for columnIndex, column in enumerate(self.panelNames):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(data[column][row]['count']) if data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=data[column][row]['note']))
 
         self.refreshCells()
@@ -163,6 +163,8 @@ class mainProgram(QMainWindow):
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
+        self.newPanelDescription = QLineEdit()
+        self.newPanelDescription.setPlaceholderText('Panel Description')
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
@@ -176,6 +178,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.deleteRow)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.newPanelName)
+        self.dockLayout.addRow(self.newPanelDescription)
         self.dockLayout.addRow(self.addPanelButton)
         self.dockLayout.addRow(self.renamePanelButton)
         self.dockLayout.addRow(self.deletePanelButton)
@@ -228,7 +231,7 @@ class mainProgram(QMainWindow):
     def getAllDeviceNames(self):
         deviceNames = []
         for rowIndex in range(len(self.uniqueItemNumbers)):
-            for columnIndex in range(len(self.columnHeaders)):
+            for columnIndex in range(len(self.panelNames)):
                 deviceNames.extend([deviceName.text() for deviceName in self.tableWidget.cellWidget(rowIndex,columnIndex).deviceNames])
         return deviceNames
     def getCableOptions(self):
@@ -244,9 +247,10 @@ class mainProgram(QMainWindow):
         availableRelayShortnames = self.queryDatabase("SELECT [ItemNo], [Short Name] FROM Material WHERE Material.Manufacturer = 'SEL' AND [Short Name] IS NOT NULL ORDER BY Material.ItemNo;",self.masterMatListPath)
         availableRelayShortnames = list(set([availableRelayShortnames[i][1] for i in range(len(availableRelayShortnames)) if availableRelayShortnames[i][0].lstrip() in self.uniqueItemNumbers]))
         availableRelayShortnames.sort()
+        availableRelayShortnames = [name.split(" ")[0] for name in availableRelayShortnames]
         return availableRelayShortnames
     def getCableRoutingOptions(self):
-        return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.columnHeaders}
+        return {"relayTypes":self.getRelayTypes(), "deviceNames":self.getAllDeviceNames(), "panelNos":self.panelNames}
 
     #KEY SHORTCUTS FUNCTIONS
     def refreshCells(self):
@@ -261,7 +265,7 @@ class mainProgram(QMainWindow):
         self.saved = False
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         noteBox = QInputDialog()
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.columnHeaders[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.panelNames[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
     #SIGNAL FUNCTIONS
     def saveCableData(self):
@@ -278,8 +282,8 @@ class mainProgram(QMainWindow):
         "REFACTORED"
         outputDictionary = {}
 
-        for column, panel in enumerate(self.columnHeaders):
-            outputDictionary[panel] = {}
+        for column, panel in enumerate(self.panelNames):
+            outputDictionary[panel] = {"description":self.panelDescriptions[column] if column < len(self.panelDescriptions) else ""}
             for row, item in enumerate(self.uniqueItemNumbers):
                 outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
 
@@ -329,38 +333,39 @@ class mainProgram(QMainWindow):
             self.deleteRow.setText(f'')
         self.saved = False
     def addPanel(self):        
-        self.columnHeaders.append(self.newPanelName.text())
+        self.panelNames.append(self.newPanelName.text())
+        self.panelDescriptions.append(self.newPanelDescription.text())
         self.tableWidget.insertColumn(self.tableWidget.columnCount())
         for row in range(self.tableWidget.rowCount()):
             cell = customTableWidgetItem(self.signals,self.tableWidget,coordinates=(row,self.tableWidget.columnCount()-1))
             cell.showDevices = True
             self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
         self.newPanelName.setText('')
+        self.newPanelDescription.setText('')
         self.refreshCells()
         self.saved = False
     def deletePanel(self):
-        if self.columnHeaders[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
+        if self.panelNames[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
             self.loosePanelPresent = False
-        self.columnHeaders.remove(self.columnHeaders[self.currentlySelectedCell[1]])
+        self.panelNames.remove(self.panelNames[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
         self.saved = False
     def renamePanel(self):
-        newPanelName = QInputDialog()
-        newPanelName.setWindowTitle("Rename Panel:")
-        newPanelName.setLabelText("Rename Panel:")
-        newPanelName.exec()
-        name = newPanelName.textValue()
-        self.columnHeaders[self.currentlySelectedCell[1]] = name
-        self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+        newPanelName, ok = QInputDialog.getText(None, "Rename Panel:", "Rename Panel:")
+        newPanelDescription, ok2 = QInputDialog.getText(None, "New Panel Description:", "Panel Description:")
+        self.panelNames[self.currentlySelectedCell[1]] = newPanelName
+        self.panelDescriptions[self.currentlySelectedCell[1]] = newPanelDescription
+        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
+        self.saved = False
     def addLoose(self):
         if not self.loosePanelPresent:
-            self.columnHeaders.append('Loose and Not Mounted')
+            self.panelNames.append('Loose and Not Mounted')
             self.tableWidget.insertColumn(self.tableWidget.columnCount())
             for row in range(self.tableWidget.rowCount()):
                 cell = customTableWidgetItem(self.signals,self.tableWidget, coordinates=(row,self.tableWidget.columnCount()-1))
                 self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-            self.tableWidget.setHorizontalHeaderLabels(self.columnHeaders)
+            self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
             self.newPanelName.setText('')
             self.refreshCells()
             self.saved = False
@@ -410,7 +415,7 @@ class mainProgram(QMainWindow):
         if self.tableWidget.rowCount()>0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
             self.deleteRow.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
-        self.deletePanelButton.setText('Delete Panel: '+self.columnHeaders[self.currentlySelectedCell[1]])
+        self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
 
     #PDF FUNCTIONS ----------- MAKE THESE A DISTINCT CLASS???
     def makeMatlistTable(self):
@@ -423,8 +428,8 @@ class mainProgram(QMainWindow):
         matlistTableData[2][1] = Paragraph('EQUIPMENT DESCRIPTION',styleCustomCenterJustified)
         matlistTableData[2][2] = Paragraph('TOTAL',styleCustomCenterJustified)
         #Fill Headers
-        for panelIndex, panel in enumerate(self.columnHeaders):
-            matlistTableData[2][panelIndex+3] = Paragraph(panel, styleCustomCenterJustified)
+        for panelIndex, panel in enumerate(self.panelNames):
+            matlistTableData[2][panelIndex+3] = Paragraph(panel + "<br/>" + self.panelDescriptions[panelIndex], styleCustomCenterJustified)
         #Fill Item Count and Names Cells
         for rowIndex in range(self.tableWidget.rowCount()):
             for columnIndex in range(0, self.tableWidget.columnCount()):
@@ -509,10 +514,10 @@ class mainProgram(QMainWindow):
         styleCustomRightJustified = ParagraphStyle(name='BodyText', parent=getSampleStyleSheet()['BodyText'], spaceBefore=6, alignment=2, fontSize=8)
         self.pageWidth = 8.5
         self.pageHeight = 11
-        if len(self.columnHeaders) > 5:
+        if len(self.panelNames) > 5:
             self.pageWidth = 11
             self.pageHeight = 8.5
-        if len(self.columnHeaders) > 9:
+        if len(self.panelNames) > 9:
             self.pageWidth = 17
             self.pageHeight = 11
         matlistTable = self.makeMatlistTable()
