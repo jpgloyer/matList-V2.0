@@ -58,6 +58,20 @@ class mainProgram(QMainWindow):
         self.quit = QAction("Quit",self)
         self.newFile = True
         self.data = {}
+        self.matListFileName = ''
+        self.pdfFileName = ''
+        self.panelNames = []
+        self.panelDescriptions = []
+        self.monitor = get_monitors()
+
+
+
+
+
+
+
+
+        
     def connectSignals(self):
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
@@ -74,22 +88,26 @@ class mainProgram(QMainWindow):
         self.cellNoteShortcut.activated.connect(self.addCellNote)
     def startupMessage(self):
         newFileDialog = QDialog()
-        newFileDialog.setWindowTitle('New Material List?')
-        newFileDialog.setMinimumSize(400,50)
         newFileDialogLayout = QGridLayout()
         newFileDialogMessage = QLabel("Create New Material List?")
         newFileRadioButtonYes = QRadioButton()
-        newFileRadioButtonYes.setText('New Material List')
         newFileRadioButtonNo = QRadioButton()
-        newFileRadioButtonNo.setText('Select Existing Material List')
         newFileDialogAccept = QPushButton('Enter')
+
+        newFileDialog.setWindowTitle('New Material List?')
+        newFileDialog.setMinimumSize(400,50)
+        newFileRadioButtonYes.setText('New Material List')
+        newFileRadioButtonNo.setText('Select Existing Material List')
         newFileDialogAccept.clicked.connect(newFileDialog.close)
+
         newFileDialogLayout.addWidget(newFileDialogMessage,0,0)
         newFileDialogLayout.addWidget(newFileRadioButtonYes,1,0)
         newFileDialogLayout.addWidget(newFileRadioButtonNo,1,1)
         newFileDialogLayout.addWidget(newFileDialogAccept)
+
         newFileDialog.setLayout(newFileDialogLayout)
         newFileDialog.exec()
+
         if newFileRadioButtonYes.isChecked():
             self.newFile = True
         if newFileRadioButtonNo.isChecked():
@@ -123,16 +141,14 @@ class mainProgram(QMainWindow):
         self.data['cables'] = []
         self.data['miscellaneousInfo'] = {"masterMatListPath":""}
     def buildMainWindow(self):
-        self.monitor = get_monitors()
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')    
     def buildInitialTable(self, data):
+        self.tableWidget = QTableWidget()     
 
-        dimensions = [len(self.uniqueItemNumbers),len(self.panelNames)]
-        self.tableWidget = QTableWidget()                   
-        self.tableWidget.setColumnCount(dimensions[1])
-        self.tableWidget.setRowCount(dimensions[0])
+        self.tableWidget.setColumnCount(len(self.panelNames))
+        self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
         self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.tableWidget.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
@@ -140,13 +156,13 @@ class mainProgram(QMainWindow):
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
 
-
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             for columnIndex, column in enumerate(self.panelNames):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(data[column][row]['count']) if data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=data[column][row]['note']))
 
         self.refreshCells()
         self.setCentralWidget(self.tableWidget)
+
     def buildRightDock(self):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
