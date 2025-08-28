@@ -32,7 +32,7 @@ class mainProgram(QMainWindow):
         super(mainProgram, self).__init__()
         self.declareVariables()
         self.connectSignals()
-        self.declareShortcuts()
+        self.connectShortcuts()
         self.startupMessage()
         if self.newFile == False:
             self.loadExistingFile()
@@ -48,61 +48,74 @@ class mainProgram(QMainWindow):
 
     #INIT FUNCTIONS
     def declareVariables(self):
-        self.masterMatList = {}
-        self.masterMatListPath = ""
-        self.signals = signalClass()
-        self.initComplete = False
-        self.saved = False
-        self.currentlySelectedCell = [0,0]
-        self.loosePanelPresent = False
-        self.uniqueItemNumbers = []
-        self.quit = QAction("Quit",self)
-        self.newFile = True
-        self.data = {}
-        self.matListFileName = ''
-        self.pdfFileName = ''
-        self.panelNames = []
-        self.panelDescriptions = []
         self.monitor = get_monitors()
+        
+        self.signals = signalClass()
+
+        self.initComplete: bool = False
+        self.saved: bool = False
+        self.loosePanelPresent: bool = False
+        self.newFile: bool = True
+
+        self.currentlySelectedCell:list = [0,0]
+        self.panelNames:list = []
+        self.panelDescriptions = []
+        self.uniqueItemNumbers:list = []
+
+        self.masterMatList: dict = {}
+        self.data: dict = {}
+
+        self.masterMatListPath: str = ""
+        self.matListFileName: str = ''
+        self.pdfFileName: str = ''
+
+        self.quit = QAction("Quit",self)
+
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
-        self.dockItemSelect = QComboBox()
         self.saveButton = QPushButton('Save',clicked=self.save)
         self.saveAsButton = QPushButton('Save As',clicked=self.saveAs)
-        self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
+        self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
-        self.newPanelName = QLineEdit()
-        self.newPanelDescription = QLineEdit()
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
         self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
+
+        self.newPanelName = QLineEdit()
+        self.newPanelDescription = QLineEdit()
+
+        self.addItemSelect = QComboBox()
+
         self.dockLayout = QFormLayout()
+
         self.dockMenu = QWidget()
+
         self.dock = QDockWidget('Menu')
+
         self.tableWidget = QTableWidget()
+
+        self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
+        self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
+        self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
+        self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
+
+
+
+
         #self.revisionDataWindow1 = revisionWindow()
         #self.cableDataWindow = cableWindow()
-
-
         #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
-
-
-
     def connectSignals(self):
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
         self.signals.saveCellData.connect(self.saveCellData)
         self.quit.triggered.connect(self.closeEvent)
-    def declareShortcuts(self):
-        self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
+    def connectShortcuts(self):
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
-        self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
         self.refreshDockShortcut.activated.connect(self.buildRightDock)
-        self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.helpShortcut.activated.connect(self.displayHints)
-        self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
     def startupMessage(self):
         newFileDialog = QDialog()
@@ -182,16 +195,16 @@ class mainProgram(QMainWindow):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
 
-        self.dockItemSelect.currentTextChanged.connect(self.updateAddRowButton)
+        self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
         for item in self.masterMatList.keys():
-            self.dockItemSelect.addItem(item)
+            self.addItemSelect.addItem(item)
 
         self.newPanelName.setPlaceholderText('Panel Name')
         self.newPanelDescription.setPlaceholderText('Panel Description')
         
-        self.dockLayout.addRow(self.dockItemSelect)
+        self.dockLayout.addRow(self.addItemSelect)
         self.dockLayout.addRow(self.addItemButton)
-        self.dockLayout.addRow(self.deleteRow)
+        self.dockLayout.addRow(self.deleteRowButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.newPanelName)
         self.dockLayout.addRow(self.newPanelDescription)
@@ -223,7 +236,7 @@ class mainProgram(QMainWindow):
         self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
         self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
         for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-            self.dockItemSelect.addItem(item)
+            self.addItemSelect.addItem(item)
 
 
 
@@ -312,26 +325,26 @@ class mainProgram(QMainWindow):
 
     #DOCK FUNCTIONS
     def addItem(self):
-        if self.dockItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
+        if self.addItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
             for panelIndex in range(self.tableWidget.columnCount()):
                 self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex,customTableWidgetItem(self.signals, self.tableWidget, coordinates=(self.tableWidget.rowCount()-1,panelIndex)))
                 self.tableWidget.cellWidget(self.tableWidget.rowCount()-1,panelIndex).showDevices = True
-            self.uniqueItemNumbers.append(self.dockItemSelect.currentText())
+            self.uniqueItemNumbers.append(self.addItemSelect.currentText())
         self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
         self.refreshCells()
         self.saved = False
     def updateAddRowButton(self):
-        self.addItemButton.setText('Add Item: '+self.dockItemSelect.currentText())
+        self.addItemButton.setText('Add Item: '+self.addItemSelect.currentText())
     def deleteItem(self):
         if len(self.uniqueItemNumbers) > 0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
             self.uniqueItemNumbers.remove(items[self.currentlySelectedCell[0]])
             self.tableWidget.removeRow(self.currentlySelectedCell[0])
         if len(self.uniqueItemNumbers) > 0:
-            self.deleteRow.setText(f'Delete Item: {items[self.currentlySelectedCell[0]]}')
+            self.deleteRowButton.setText(f'Delete Item: {items[self.currentlySelectedCell[0]]}')
         else:
-            self.deleteRow.setText(f'')
+            self.deleteRowButton.setText(f'')
         self.saved = False
     def addPanel(self):        
         self.panelNames.append(self.newPanelName.text())
@@ -415,7 +428,7 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         if self.tableWidget.rowCount()>0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
-            self.deleteRow.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
+            self.deleteRowButton.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
         self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
 
     #PDF FUNCTIONS ----------- MAKE THESE A DISTINCT CLASS???
