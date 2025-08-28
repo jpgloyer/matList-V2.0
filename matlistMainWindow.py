@@ -42,6 +42,7 @@ class mainProgram(QMainWindow):
         self.buildInitialTable(self.data)
         self.buildRightDock()
         self.selectMasterMatlistFile()
+        self.buildMasterMatList()
         self.saved = True
         self.initComplete = True
 
@@ -63,15 +64,32 @@ class mainProgram(QMainWindow):
         self.panelNames = []
         self.panelDescriptions = []
         self.monitor = get_monitors()
+        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
+        self.dockItemSelect = QComboBox()
+        self.saveButton = QPushButton('Save',clicked=self.save)
+        self.saveAsButton = QPushButton('Save As',clicked=self.saveAs)
+        self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
+        self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
+        self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
+        self.newPanelName = QLineEdit()
+        self.newPanelDescription = QLineEdit()
+        self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
+        self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
+        self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
+        self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
+        self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
+        self.dockLayout = QFormLayout()
+        self.dockMenu = QWidget()
+        self.dock = QDockWidget('Menu')
+        self.tableWidget = QTableWidget()
+        #self.revisionDataWindow1 = revisionWindow()
+        #self.cableDataWindow = cableWindow()
+
+
+        #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
 
 
 
-
-
-
-
-
-        
     def connectSignals(self):
         self.signals.saveRevisionData.connect(self.saveRevisionData)
         self.signals.saveCableData.connect(self.saveCableData)
@@ -145,8 +163,6 @@ class mainProgram(QMainWindow):
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')    
     def buildInitialTable(self, data):
-        self.tableWidget = QTableWidget()     
-
         self.tableWidget.setColumnCount(len(self.panelNames))
         self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
         self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
@@ -162,33 +178,17 @@ class mainProgram(QMainWindow):
 
         self.refreshCells()
         self.setCentralWidget(self.tableWidget)
-
     def buildRightDock(self):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
-        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
-        self.dockItemSelect = QComboBox()
+
         self.dockItemSelect.currentTextChanged.connect(self.updateAddRowButton)
         for item in self.masterMatList.keys():
             self.dockItemSelect.addItem(item)
 
-        self.saveButton = QPushButton('Save',clicked=self.save)
-        self.saveAsButton = QPushButton('Save As',clicked=self.saveAs)
-        self.deleteRow = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
-        self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
-        self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
-        self.newPanelName = QLineEdit()
         self.newPanelName.setPlaceholderText('Panel Name')
-        self.newPanelDescription = QLineEdit()
         self.newPanelDescription.setPlaceholderText('Panel Description')
-        self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
-        self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
-        self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
-        self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
-        self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
-        #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
-
-        self.dockLayout = QFormLayout()
+        
         self.dockLayout.addRow(self.dockItemSelect)
         self.dockLayout.addRow(self.addItemButton)
         self.dockLayout.addRow(self.deleteRow)
@@ -209,35 +209,24 @@ class mainProgram(QMainWindow):
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
         
-        self.dockMenu = QWidget()
         self.dockMenu.setLayout(self.dockLayout)
-        self.dock = QDockWidget('Menu')
         self.dock.setWidget(self.dockMenu)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
     def selectMasterMatlistFile(self):
         if not self.masterMatListPath:
-            try:
-                fileDialog = QFileDialog()
-                fileDialog.setWindowTitle("Select Master Material List Database")
-                fileDialog.setNameFilters(["Access Database files (*.accdb)"])
-                fileDialog.exec()
-                self.masterMatListPath = fileDialog.selectedFiles()[0]
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
-                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-                
-                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-                    self.dockItemSelect.addItem(item)
-            except:
-                pass
-        else:
-            try:
-                self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
-                self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-                
-                for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-                    self.dockItemSelect.addItem(item)
-            except:
-                pass
+            fileDialog = QFileDialog()
+            fileDialog.setWindowTitle("Select Master Material List Database")
+            fileDialog.setNameFilters(["Access Database files (*.accdb)"])
+            fileDialog.exec()
+            self.masterMatListPath = fileDialog.selectedFiles()[0]
+    def buildMasterMatList(self):
+        self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
+        self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
+        for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
+            self.dockItemSelect.addItem(item)
+
+
+
 
     #GETTER FUNCTIONS
     def getUniqueItemNumbers(self,data):
@@ -280,8 +269,7 @@ class mainProgram(QMainWindow):
     def addCellNote(self):
         self.saved = False
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
-        noteBox = QInputDialog()
-        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = noteBox.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.panelNames[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
+        self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = QInputDialog.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.panelNames[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
     #SIGNAL FUNCTIONS
     def saveCableData(self):
@@ -295,14 +283,11 @@ class mainProgram(QMainWindow):
 
     #SAVING FUNCTIONS
     def developOutputDictionary(self):
-        "REFACTORED"
         outputDictionary = {}
-
         for column, panel in enumerate(self.panelNames):
             outputDictionary[panel] = {"description":self.panelDescriptions[column] if column < len(self.panelDescriptions) else ""}
             for row, item in enumerate(self.uniqueItemNumbers):
                 outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
-
         outputDictionary['revisions'] = self.data['revisions']
         outputDictionary['cables'] = self.data['cables']
         outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
