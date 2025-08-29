@@ -80,17 +80,20 @@ class cableWindow(QMainWindow):
 
     def addCableTypeBox(self, cableType, rowIndex):
         item = QComboBox()
-        for cableType in self.cableTypes:
-            item.addItem(cableType)
-        item.setCurrentIndex(self.cableTypes.index(cableType))
+        for cableType1 in self.cableTypes:
+            item.addItem(cableType1)
+        item.setCurrentText(cableType)
         item.currentTextChanged.connect(self.cableTypeChanged)
         self.cableTable.setCellWidget(rowIndex, 1, item)
 
     def addCableLengthBox(self, cableLength, rowIndex):
         item = QComboBox()
-        for length in self.cableLengths:
-            item.addItem(length)
-        item.setCurrentIndex(self.cableLengths.index(cableLength))
+        item.addItem("")
+        for cable in self.cableOptions:
+            if cable["cableType"] == self.cableTable.cellWidget(rowIndex,1).currentText():
+                if item.findText(cable["length"]) == -1:
+                    item.addItem(cable["length"])
+        item.setCurrentText(cableLength)
         item.currentTextChanged.connect(self.cableLengthChanged)
         self.cableTable.setCellWidget(rowIndex, 2, item)
 
