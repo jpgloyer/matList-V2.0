@@ -73,13 +73,10 @@ class cableWindow(QMainWindow):
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
 
     def addItemNoBox(self, itemNo, rowIndex):
-        item = QComboBox()
-        for itemNo in self.itemNos:
-            item.addItem(itemNo)
-        item.setCurrentText(itemNo)
-        item.currentTextChanged.connect(self.itemNoChanged)
+        item = QLabel()
+        item.setText(itemNo)
         self.cableTable.setCellWidget(rowIndex, 0, item)
-        self.cableTable.cellWidget(rowIndex, 0).changeEvent
+
 
     def addCableTypeBox(self, cableType, rowIndex):
         item = QComboBox()
@@ -123,7 +120,7 @@ class cableWindow(QMainWindow):
         self.cableData = []
         for rowIndex in range(self.cableTable.rowCount()):
             cable = {}
-            cable["itemNo"] = self.cableTable.cellWidget(rowIndex,0).currentText()
+            cable["itemNo"] = self.cableTable.cellWidget(rowIndex,0).text()
             cable["cableType"] = self.cableTable.cellWidget(rowIndex,1).currentText()
             cable["length"] = self.cableTable.cellWidget(rowIndex,2).currentText()
             cable["from"] = {}
@@ -150,9 +147,16 @@ class cableWindow(QMainWindow):
                 return cable["cableType"], cable["length"]
         return None, None
 
-    def itemNoChanged(self):
-        print(self.getDescFromItemNo(self.sender().currentText()))
     def cableTypeChanged(self):
-        print(self.getItemNoFromDesc(self.sender().currentText(), self.cableTable.cellWidget(self.cableTable.currentRow(),2).currentText()))
+        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText("")#SET ITEM NO TO BLANK
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).setCurrentText("")#SET LENGTH TO BLANK
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).clear()#CLEAR LENGTH OPTIONS
+        #FILL LENGTH OPTIONS
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem("")
+        for cable in self.cableOptions:
+            if cable["cableType"] == self.sender().currentText():
+                if self.cableTable.cellWidget(self.cableTable.currentRow(),2).findText(cable["length"]) == -1:
+                    self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem(cable["length"])
+
     def cableLengthChanged(self):
-        print(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))
+        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))

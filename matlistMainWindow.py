@@ -261,7 +261,7 @@ class mainProgram(QMainWindow):
         cableTypes = [cableOptions[i][1] for i in range(len(cableOptions))]
         cableLengths = [cableOptions[i][2] for i in range(len(cableOptions))]
         availableCableNumbers = list(set(itemNumbers)&set(self.uniqueItemNumbers))
-        availableCableTypes = [cableTypes[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
+        availableCableTypes = [cableTypes[itemNumbers.index(availableCableNumbers[i])].split("-")[0] for i in range(len(availableCableNumbers))]
         availableCableLengths = [cableLengths[itemNumbers.index(availableCableNumbers[i])] for i in range(len(availableCableNumbers))]
         return [{"itemNo":availableCableNumbers[i],"cableType":availableCableTypes[i],"length":str(availableCableLengths[i])} for i in range(len(availableCableNumbers))]
     def getRelayTypes(self):
