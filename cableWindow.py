@@ -72,37 +72,48 @@ class cableWindow(QMainWindow):
         self.dockMenu.setWidget(self.dockMenuWidget)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
 
+    def addItemNoBox(self, itemNo, rowIndex):
+        item = QComboBox()
+        for itemNo in self.itemNos:
+            item.addItem(itemNo)
+        item.setCurrentText(itemNo)
+        item.currentTextChanged.connect(self.itemNoChanged)
+        self.cableTable.setCellWidget(rowIndex, 0, item)
+        self.cableTable.cellWidget(rowIndex, 0).changeEvent
+
+    def addCableTypeBox(self, cableType, rowIndex):
+        item = QComboBox()
+        for cableType in self.cableTypes:
+            item.addItem(cableType)
+        item.setCurrentIndex(self.cableTypes.index(cableType))
+        item.currentTextChanged.connect(self.cableTypeChanged)
+        self.cableTable.setCellWidget(rowIndex, 1, item)
+
+    def addCableLengthBox(self, cableLength, rowIndex):
+        item = QComboBox()
+        for length in self.cableLengths:
+            item.addItem(length)
+        item.setCurrentIndex(self.cableLengths.index(cableLength))
+        item.currentTextChanged.connect(self.cableLengthChanged)
+        self.cableTable.setCellWidget(rowIndex, 2, item)
+
+    def addCableRoutingBox(self, cableFrom, rowIndex, columnIndex):
+        item = customCableTableItem(self.signals,self.cableTable, cableFrom)
+        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
+        item.setCurrentValues()
+        self.cableTable.setCellWidget(rowIndex, columnIndex, item)
+
     def addCable(self, cable = False):
         if cable == False:
             cable = {"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
         self.cableTable.insertRow(self.cableTable.rowCount())
         rowIndex = self.cableTable.rowCount()-1
-        item = QComboBox()
-        for itemNo in self.itemNos:
-            item.addItem(itemNo)
-        item.setCurrentText(cable["itemNo"])
-        item.currentTextChanged.connect(self.itemNoChanged)
-        self.cableTable.setCellWidget(rowIndex, 0, item)
-        item = QComboBox()
-        for cableType in self.cableTypes:
-            item.addItem(cableType)
-        item.setCurrentIndex(self.cableTypes.index(cable["cableType"]))
-        item.currentTextChanged.connect(self.cableTypeChanged)
-        self.cableTable.setCellWidget(rowIndex, 1, item)
-        item = QComboBox()
-        for length in self.cableLengths:
-            item.addItem(length)
-        item.setCurrentIndex(self.cableLengths.index(cable["length"]))
-        item.currentTextChanged.connect(self.cableLengthChanged)
-        self.cableTable.setCellWidget(rowIndex, 2, item)
-        item = customCableTableItem(self.signals,self.cableTable, cable["from"])
-        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
-        item.setCurrentValues()
-        self.cableTable.setCellWidget(rowIndex, 3, item)
-        item = customCableTableItem(self.signals,self.cableTable, cable["to"])
-        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
-        item.setCurrentValues()
-        self.cableTable.setCellWidget(rowIndex, 4, item)
+        self.addItemNoBox(cable["itemNo"],rowIndex)
+        self.addCableTypeBox(cable["cableType"],rowIndex)
+        self.addCableLengthBox(cable["length"],rowIndex)
+        self.addCableRoutingBox(cable["from"], rowIndex, 3)
+        self.addCableRoutingBox(cable["to"], rowIndex , 4)
+
     def removeCable(self):
         self.cableTable.removeRow(self.cableTable.currentRow())
     def closeEvent(self,event):
@@ -140,12 +151,8 @@ class cableWindow(QMainWindow):
         return None, None
 
     def itemNoChanged(self):
-        pass
-
+        print(self.getDescFromItemNo(self.sender().currentText()))
     def cableTypeChanged(self):
-
-        pass
-
+        print(self.getItemNoFromDesc(self.sender().currentText(), self.cableTable.cellWidget(self.cableTable.currentRow(),2).currentText()))
     def cableLengthChanged(self):
-        pass
-
+        print(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))
