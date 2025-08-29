@@ -463,7 +463,7 @@ class mainProgram(QMainWindow):
             matlistTableData[rowIndex+3][0] = Paragraph(self.tableWidget.verticalHeaderItem(rowIndex).text(), styleCustomCenterJustified)
             matlistTableData[rowIndex+3][1] = Paragraph(self.masterMatList[self.tableWidget.verticalHeaderItem(rowIndex).text()], styleCustomLeftJustified)
         
-        matlistColumnWidths = [40,150,30]
+        matlistColumnWidths = [40,150,40]
         for i in matlistTableData[0][1:]:
             matlistColumnWidths.append((self.pageWidth*inch-200)/len(matlistTableData[0][1:]))
         matlistTable = Table(matlistTableData, colWidths=matlistColumnWidths, repeatRows=3, style=[
