@@ -97,43 +97,44 @@ class customCableTableItem(QWidget):
         self.signals=signalClass
         self.tableWidget = tableWidget
         self.cable = cable
-
+        self.declareVariables()
         self.buildLayout()
    
-    def buildLayout(self):
+    def declareVariables(self):
         self.layout1 = QGridLayout()
         self.relayType = QComboBox()
-        self.relayType.setEditable(True)
-        self.relayType.addItem(self.cable["relayType"])
-        self.relayType.setCurrentIndex(0)
         self.deviceName = QComboBox()
-        self.deviceName.setEditable(True)
-        self.deviceName.addItem(self.cable["deviceNo"])
-        self.deviceName.setCurrentIndex(0)
         self.port = QComboBox()
-        self.port.setEditable(True)
-        self.port.addItem(self.cable["port"])
-        self.port.setCurrentIndex(0)
         self.panelNo = QComboBox()
-        self.panelNo.addItem(self.cable["panelNo"])
-        self.panelNo.setCurrentIndex(0)
         self.relayLabel = QLabel("Relay Type")
         self.deviceLabel = QLabel("Device No")
         self.portLabel = QLabel("Port")
         self.panelLabel = QLabel("Panel No")
+    def buildLayout(self):
+        self.relayType.setEditable(True)
+        self.relayType.addItem(self.cable["relayType"])
+        self.relayType.setCurrentIndex(0)
+        self.deviceName.setEditable(True)
+        self.deviceName.addItem(self.cable["deviceNo"])
+        self.deviceName.setCurrentIndex(0)
+        self.port.setEditable(True)
+        self.port.addItem(self.cable["port"])
+        self.port.setCurrentIndex(0)
+        self.panelNo.addItem(self.cable["panelNo"])
+        self.panelNo.setCurrentIndex(0)
+        
         self.layout1.addWidget(self.relayLabel, 3, 0)
         self.layout1.addWidget(self.deviceLabel, 1, 0)
         self.layout1.addWidget(self.portLabel, 2, 0)
         self.layout1.addWidget(self.panelLabel, 0, 0)
-        
         self.layout1.addWidget(self.relayType, 3, 1)
         self.layout1.addWidget(self.deviceName, 1, 1)
         self.layout1.addWidget(self.port, 2, 1)
         self.layout1.addWidget(self.panelNo, 0, 1)
         self.setLayout(self.layout1)
+
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeRowsToContents)
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeColumnsToContents)
-
     def fillOptions(self, relayTypes, deviceNames, panelNos):
         self.relayType.clear()
         self.deviceName.clear()

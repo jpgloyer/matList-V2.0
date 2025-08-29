@@ -104,8 +104,8 @@ class cableWindow(QMainWindow):
         self.cableTable.cellWidget(rowIndex,2).setCurrentText(cableLength)
         self.cableTable.cellWidget(rowIndex,2).currentTextChanged.connect(self.cableLengthChanged)
 
-    def addCableRoutingBox(self, cableFrom, rowIndex, columnIndex):
-        item = customCableTableItem(self.signals,self.cableTable, cableFrom)
+    def addCableRoutingBox(self, cableRoute, rowIndex, columnIndex):
+        item = customCableTableItem(self.signals,self.cableTable, cableRoute)
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, columnIndex, item)
