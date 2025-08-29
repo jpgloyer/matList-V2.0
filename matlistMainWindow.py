@@ -514,7 +514,7 @@ class mainProgram(QMainWindow):
             cableTableData[cableindex+3][9] = Paragraph(cable['to']['relayType'],style=styleCustomCenterJustified)
             cableTableData[cableindex+3][10] = Paragraph(cable['to']['port'],style=styleCustomCenterJustified)
 
-        cableTable = Table(cableTableData, colWidths=[50,60,50,70,70,70,70,70,70,70,70], repeatRows=3, style=[
+        cableTable = Table(cableTableData, colWidths=[50,60,50,70,70,70,70,70,70,70,70], rowHeights=[25 for row in cableTableData], repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),#Cable table header
             ('SPAN', (3,1), (6, 1)),#From header

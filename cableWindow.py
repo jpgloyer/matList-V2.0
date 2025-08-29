@@ -41,6 +41,7 @@ class cableWindow(QMainWindow):
         self.dockMenuButtonRemoveCable = QPushButton("Remove Currently Selected Cable",clicked=self.removeCable)
         self.cableTable = QTableWidget()
 
+
         self.buildWindow()
         self.initializeCableTable()
         self.buildDock()
