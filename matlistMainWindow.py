@@ -83,6 +83,7 @@ class mainProgram(QMainWindow):
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
         self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
+        self.searchByKeywordButton = QPushButton("Search by Keyword",clicked=self.searchByKeyword)
 
         self.newPanelName = QLineEdit()
         self.newPanelDescription = QLineEdit()
@@ -207,6 +208,7 @@ class mainProgram(QMainWindow):
         
         self.dockLayout.addRow(self.addItemSelect)
         self.dockLayout.addRow(self.addItemButton)
+        self.dockLayout.addRow(self.searchByKeywordButton)
         self.dockLayout.addRow(self.deleteRowButton)
         self.dockLayout.addItem(QSpacerItem(50,50))
         self.dockLayout.addRow(self.newPanelName)
@@ -241,7 +243,14 @@ class mainProgram(QMainWindow):
         for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
             self.addItemSelect.addItem(item)
 
-
+    def searchByKeyword(self):
+        keyword = QInputDialog.getText(self,'Search by Keyword','Enter Keyword to Search in Item Descriptions:')
+        if keyword[1] == True and keyword[0] != '':
+            results = [item for item in self.masterMatList if keyword[0].lower() in self.masterMatList[item].lower()]
+            message = QMessageBox()
+            message.setWindowTitle('Search Results')
+            message.setText(f'Items containing "{keyword[0]}":\n'+'\n'.join([item for item in results]))
+            message.exec()
 
 
     #GETTER FUNCTIONS
