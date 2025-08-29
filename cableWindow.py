@@ -82,20 +82,26 @@ class cableWindow(QMainWindow):
         item = QComboBox()
         for cableType1 in self.cableTypes:
             item.addItem(cableType1)
-        item.setCurrentText(cableType)
-        item.currentTextChanged.connect(self.cableTypeChanged)
         self.cableTable.setCellWidget(rowIndex, 1, item)
+        self.cableTable.cellWidget(rowIndex,1).setCurrentText(cableType)
+        self.cableTable.cellWidget(rowIndex,1).currentTextChanged.connect(self.cableTypeChanged)
+
 
     def addCableLengthBox(self, cableLength, rowIndex):
         item = QComboBox()
+        choices = []
         item.addItem("")
         for cable in self.cableOptions:
             if cable["cableType"] == self.cableTable.cellWidget(rowIndex,1).currentText():
                 if item.findText(cable["length"]) == -1:
-                    item.addItem(cable["length"])
-        item.setCurrentText(cableLength)
-        item.currentTextChanged.connect(self.cableLengthChanged)
+                    choices.append(cable["length"])
+        choices.sort(key=naturalSortKey)
+        for choice in choices:
+                    item.addItem(choice)
+
         self.cableTable.setCellWidget(rowIndex, 2, item)
+        self.cableTable.cellWidget(rowIndex,2).setCurrentText(cableLength)
+        self.cableTable.cellWidget(rowIndex,2).currentTextChanged.connect(self.cableLengthChanged)
 
     def addCableRoutingBox(self, cableFrom, rowIndex, columnIndex):
         item = customCableTableItem(self.signals,self.cableTable, cableFrom)
@@ -156,10 +162,14 @@ class cableWindow(QMainWindow):
         self.cableTable.cellWidget(self.cableTable.currentRow(),2).clear()#CLEAR LENGTH OPTIONS
         #FILL LENGTH OPTIONS
         self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem("")
+        choices = []
         for cable in self.cableOptions:
             if cable["cableType"] == self.sender().currentText():
                 if self.cableTable.cellWidget(self.cableTable.currentRow(),2).findText(cable["length"]) == -1:
-                    self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem(cable["length"])
+                    choices.append(cable["length"])
+        choices.sort(key=naturalSortKey)
+        for choice in choices:
+            self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem(choice)
 
     def cableLengthChanged(self):
         self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))
