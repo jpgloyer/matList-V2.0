@@ -244,9 +244,18 @@ class mainProgram(QMainWindow):
             self.addItemSelect.addItem(item)
 
     def searchByKeyword(self):
-        keyword = QInputDialog.getText(self,'Search by Keyword','Enter Keyword to Search in Item Descriptions:')
-        if keyword[1] == True and keyword[0] != '':
-            results = [item for item in self.masterMatList if keyword[0].lower() in self.masterMatList[item].lower()]
+        keywordEntry = QInputDialog.getText(self,'Search by Keyword','Enter Keywords (split by "%") to Search in Item Descriptions:')
+        if keywordEntry[1] == True and keywordEntry[0] != '':
+            results = []
+            keywords = keywordEntry[0].split("%")
+            for item in self.masterMatList:
+                itemNumberValid = True
+                for keyword in keywords:
+                    if keyword.lower() not in self.masterMatList[item].lower():
+                        itemNumberValid = False
+                if itemNumberValid == True:
+                    results.append(item)
+            #results = [item for item in self.masterMatList if keyword[0].lower() in self.masterMatList[item].lower()]
             results.sort(key=naturalSortKey)
             self.searchResults = QDialog()
             self.searchResultsLayout = QGridLayout()
@@ -258,7 +267,7 @@ class mainProgram(QMainWindow):
 
 
             self.searchResults.setWindowTitle('Search Results')
-            self.searchResultsLayout.addWidget(QLabel(f'Items containing "{keyword[0]}":'),0,0)
+            self.searchResultsLayout.addWidget(QLabel(f'Items containing "{keywordEntry[0]}":'),0,0)
             self.searchResultsLayout.addWidget(self.searchResultsList,1,0)
             self.searchResultsLayout.addWidget(self.descriptionWidget,1,2)
             
