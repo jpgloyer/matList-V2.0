@@ -247,10 +247,27 @@ class mainProgram(QMainWindow):
         keyword = QInputDialog.getText(self,'Search by Keyword','Enter Keyword to Search in Item Descriptions:')
         if keyword[1] == True and keyword[0] != '':
             results = [item for item in self.masterMatList if keyword[0].lower() in self.masterMatList[item].lower()]
-            message = QMessageBox()
-            message.setWindowTitle('Search Results')
-            message.setText(f'Items containing "{keyword[0]}":\n'+'\n'.join([item for item in results]))
-            message.exec()
+            results.sort(key=naturalSortKey)
+            self.searchResults = QDialog()
+            self.searchResultsLayout = QGridLayout()
+            self.descriptionWidget = QLabel()
+            self.searchResultsList = QListWidget()
+            self.searchResultsList.currentTextChanged.connect(self.showDescription)
+            for item in results:
+                self.searchResultsList.addItem(item)
+
+
+            self.searchResults.setWindowTitle('Search Results')
+            self.searchResultsLayout.addWidget(QLabel(f'Items containing "{keyword[0]}":'),0,0)
+            self.searchResultsLayout.addWidget(self.searchResultsList,1,0)
+            self.searchResultsLayout.addWidget(self.descriptionWidget,1,2)
+            
+            self.searchResults.setLayout(self.searchResultsLayout)
+            self.searchResultsList.setCurrentRow(0)
+            self.searchResults.exec()
+
+    def showDescription(self):
+        self.descriptionWidget.setText("Item " + self.searchResultsList.currentItem().text() + ":\n" + self.masterMatList[self.searchResultsList.currentItem().text()].replace('<br/>','\n'))
 
 
     #GETTER FUNCTIONS
