@@ -40,11 +40,10 @@ class mainProgram(QMainWindow):
         else:
             self.buildNewMatlist()
         self.buildMainWindow()
-        self.buildTable()
+        self.buildUI()
         self.selectMasterMatlistFile()
         self.buildMasterMatList()
         self.saved = True
-        self.initComplete = True
 
     #INIT FUNCTIONS
     def declareVariables(self):
@@ -52,7 +51,6 @@ class mainProgram(QMainWindow):
         
         self.signals = signalClass()
 
-        self.initComplete: bool = False
         self.saved: bool = False
         self.loosePanelPresent: bool = False
         self.newFile: bool = True
@@ -187,7 +185,7 @@ class mainProgram(QMainWindow):
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')    
-    def buildTable(self):
+    def buildUI(self):
         self.tableWidget.setColumnCount(len(self.panelNames))
         self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
         self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
@@ -216,22 +214,29 @@ class mainProgram(QMainWindow):
         self.newPanelDescription.setPlaceholderText('Panel Description')
         
 
-        
         self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
         self.mainWindowLayout.addWidget(self.addItemButton,1,0)
-        self.mainWindowLayout.addWidget(self.searchByKeywordButton,3,0)
-        self.mainWindowLayout.addWidget(self.deleteRowButton,2,0)
+        self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
+        self.mainWindowLayout.addWidget(self.searchByKeywordButton,2,0)
+
         self.mainWindowLayout.addWidget(self.newPanelName,0,1)
         self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
         self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
-        self.mainWindowLayout.addWidget(self.renamePanelButton,3,1)
+        self.mainWindowLayout.addWidget(self.renamePanelButton,5,1)
         self.mainWindowLayout.addWidget(self.deletePanelButton,4,1)
-        self.mainWindowLayout.addWidget(self.addLooseButton,5,1)
+        self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
+        if self.loosePanelPresent == True:
+            self.addLooseButton.setDisabled(True)
+            self.addLooseButton.hide()
+        
+
         self.mainWindowLayout.addWidget(self.revisionDataWindowButton,8,0)
         self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
+
         self.mainWindowLayout.addWidget(self.saveButton,12,0)
         self.mainWindowLayout.addWidget(self.saveAsButton,13,0)
         self.mainWindowLayout.addWidget(self.hintsButton,14,0)
+
         self.mainWindowLayout.addWidget(self.tableWidget,0,2,15,1)
 
 
@@ -413,6 +418,8 @@ class mainProgram(QMainWindow):
     def deletePanel(self):
         if self.panelNames[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
             self.loosePanelPresent = False
+            self.addLooseButton.setDisabled(False)
+            self.addLooseButton.show()
         self.panelNames.remove(self.panelNames[self.currentlySelectedCell[1]])
         self.tableWidget.removeColumn(self.currentlySelectedCell[1])
         self.saved = False
@@ -435,6 +442,8 @@ class mainProgram(QMainWindow):
             self.refreshCells()
             self.saved = False
             self.loosePanelPresent = True
+            self.addLooseButton.setDisabled(True)
+            self.addLooseButton.hide()
 
     #OTHER WINDOWS
     def showRevisionData(self):
@@ -481,6 +490,8 @@ class mainProgram(QMainWindow):
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
             self.deleteRowButton.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
         self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
+        self.renamePanelButton.setText('Rename Panel: '+self.panelNames[self.currentlySelectedCell[1]])
+
 
     #PDF FUNCTIONS ----------- MAKE THESE A DISTINCT CLASS???
     def makeMatlistTable(self):
