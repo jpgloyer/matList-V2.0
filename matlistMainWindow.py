@@ -40,7 +40,7 @@ class mainProgram(QMainWindow):
         else:
             self.buildNewMatlist()
         self.buildMainWindow()
-        self.buildTable(self.data)
+        self.buildTable()
         self.buildDock()
         self.selectMasterMatlistFile()
         self.buildMasterMatList()
@@ -60,7 +60,7 @@ class mainProgram(QMainWindow):
 
         self.currentlySelectedCell:list = [0,0]
         self.panelNames:list = []
-        self.panelDescriptions = []
+        self.panelDescriptions:list = []
         self.uniqueItemNumbers:list = []
 
         self.masterMatList: dict = {}
@@ -93,11 +93,21 @@ class mainProgram(QMainWindow):
         self.dockLayout = QFormLayout()
 
         self.dockMenu = QWidget()
+        self.mainWindowWidget = QWidget()
 
         self.dock = QDockWidget('Menu')
 
         self.tableWidget = QTableWidget()
 
+        self.mainWindowLayout = QGridLayout()
+        self.searchResultsLayout = QGridLayout()
+
+        self.searchResults = QDialog()
+
+        self.searchResultsList = QListWidget()
+
+        self.descriptionWidget = QLabel()
+        
         self.refreshCellsShortcut = QShortcut(QtGui.QKeySequence(self.tr("R")),self)
         self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
@@ -160,7 +170,8 @@ class mainProgram(QMainWindow):
             self.panelDescriptions = [self.data[header]["description"] for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"] and "description" in self.data[header]]
             self.loosePanelPresent = 'Loose and Not Mounted' in self.data
             self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
-            self.getUniqueItemNumbers(self.data)
+            self.uniqueItemNumbers = [item for item in self.data[list(self.data.keys())[0]] if item != 'description']
+            self.uniqueItemNumbers.sort(key=naturalSortKey)
         except:
             message = QMessageBox(text='Error Loading File\nNew File Being Created')
             message.exec()
@@ -177,7 +188,7 @@ class mainProgram(QMainWindow):
         self.setGeometry(QtCore.QRect(int(self.monitor[0].width*.1),int(self.monitor[0].height*.1),int(self.monitor[0].width*.8),int(self.monitor[0].height*.8)))
         filename = os.path.basename(self.matListFileName).split('.')[0]
         self.setWindowTitle(f'{filename} Contract List')    
-    def buildTable(self, data):
+    def buildTable(self):
         self.tableWidget.setColumnCount(len(self.panelNames))
         self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
         self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
@@ -191,10 +202,15 @@ class mainProgram(QMainWindow):
 
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             for columnIndex, column in enumerate(self.panelNames):
-                self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(data[column][row]['count']) if data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=data[column][row]['note']))
+                self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
 
         self.refreshCells()
-        self.setCentralWidget(self.tableWidget)
+        
+        self.mainWindowLayout.addWidget(self.tableWidget,0,1)
+        self.mainWindowWidget.setLayout(self.mainWindowLayout)
+        self.setCentralWidget(self.mainWindowWidget)
+        #self.setCentralWidget(self.tableWidget)
+
     def buildDock(self):
         if self.initComplete == True:
             self.removeDockWidget(self.dock)
@@ -226,6 +242,7 @@ class mainProgram(QMainWindow):
         self.dockLayout.addRow(self.saveAsButton)
         self.dockLayout.addItem(QSpacerItem(50,300))
         self.dockLayout.addRow(self.hintsButton)
+        #self.dockLayout.addRow(QPushButton("Test Button",clicked=))
         
         self.dockMenu.setLayout(self.dockLayout)
         self.dock.setWidget(self.dockMenu)
@@ -243,6 +260,8 @@ class mainProgram(QMainWindow):
         for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
             self.addItemSelect.addItem(item)
 
+
+    #MISC FUNCTIONS TO BE SORTED LATER
     def searchByKeyword(self):
         keywordEntry = QInputDialog.getText(self,'Search by Keyword','Enter Keywords (split by "%") to Search in Item Descriptions:')
         if keywordEntry[1] == True and keywordEntry[0] != '':
@@ -257,10 +276,17 @@ class mainProgram(QMainWindow):
                     results.append(item)
             #results = [item for item in self.masterMatList if keyword[0].lower() in self.masterMatList[item].lower()]
             results.sort(key=naturalSortKey)
-            self.searchResults = QDialog()
-            self.searchResultsLayout = QGridLayout()
-            self.descriptionWidget = QLabel()
-            self.searchResultsList = QListWidget()
+            
+            self.searchResults.setMaximumWidth(1000)
+            self.searchResults.setMinimumWidth(1000)
+            self.searchResults.setMaximumHeight(1000)
+            self.searchResults.setMinimumHeight(1000)
+            
+            
+            self.descriptionWidget.setWordWrap(True)
+            
+            self.searchResultsList.setMaximumWidth(200)
+            self.searchResultsList.setMinimumWidth(200)
             self.searchResultsList.currentTextChanged.connect(self.showDescription)
             for item in results:
                 self.searchResultsList.addItem(item)
@@ -274,16 +300,11 @@ class mainProgram(QMainWindow):
             self.searchResults.setLayout(self.searchResultsLayout)
             self.searchResultsList.setCurrentRow(0)
             self.searchResults.exec()
-
     def showDescription(self):
         self.descriptionWidget.setText("Item " + self.searchResultsList.currentItem().text() + ":\n" + self.masterMatList[self.searchResultsList.currentItem().text()].replace('<br/>','\n'))
 
 
     #GETTER FUNCTIONS
-    def getUniqueItemNumbers(self,data):
-        self.uniqueItemNumbers = [item for item in data[list(data.keys())[0]] if item != 'description']
-        self.uniqueItemNumbers.sort(key=naturalSortKey)
-        return self.uniqueItemNumbers
     def getAllDeviceNames(self):
         deviceNames = []
         for rowIndex in range(len(self.uniqueItemNumbers)):
