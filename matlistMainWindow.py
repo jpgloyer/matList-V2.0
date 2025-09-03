@@ -41,7 +41,6 @@ class mainProgram(QMainWindow):
             self.buildNewMatlist()
         self.buildMainWindow()
         self.buildTable()
-        self.buildDock()
         self.selectMasterMatlistFile()
         self.buildMasterMatList()
         self.saved = True
@@ -126,7 +125,7 @@ class mainProgram(QMainWindow):
         self.quit.triggered.connect(self.closeEvent)
     def connectShortcuts(self):
         self.refreshCellsShortcut.activated.connect(self.refreshCells)
-        self.refreshDockShortcut.activated.connect(self.buildDock)
+        #self.refreshDockShortcut.activated.connect(self.buildDock)
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
     def startupMessage(self):
@@ -197,6 +196,8 @@ class mainProgram(QMainWindow):
         self.tableWidget.setTabKeyNavigation(False)
         self.tableWidget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.tableWidget.verticalScrollBar().setSingleStep(20)
+        self.tableWidget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.tableWidget.horizontalScrollBar().setSingleStep(20)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
 
@@ -205,15 +206,7 @@ class mainProgram(QMainWindow):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
 
         self.refreshCells()
-        
-        self.mainWindowLayout.addWidget(self.tableWidget,0,1)
-        self.mainWindowWidget.setLayout(self.mainWindowLayout)
-        self.setCentralWidget(self.mainWindowWidget)
-        #self.setCentralWidget(self.tableWidget)
 
-    def buildDock(self):
-        if self.initComplete == True:
-            self.removeDockWidget(self.dock)
 
         self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
         for item in self.masterMatList.keys():
@@ -222,31 +215,30 @@ class mainProgram(QMainWindow):
         self.newPanelName.setPlaceholderText('Panel Name')
         self.newPanelDescription.setPlaceholderText('Panel Description')
         
-        self.dockLayout.addRow(self.addItemSelect)
-        self.dockLayout.addRow(self.addItemButton)
-        self.dockLayout.addRow(self.searchByKeywordButton)
-        self.dockLayout.addRow(self.deleteRowButton)
-        self.dockLayout.addItem(QSpacerItem(50,50))
-        self.dockLayout.addRow(self.newPanelName)
-        self.dockLayout.addRow(self.newPanelDescription)
-        self.dockLayout.addRow(self.addPanelButton)
-        self.dockLayout.addRow(self.renamePanelButton)
-        self.dockLayout.addRow(self.deletePanelButton)
-        self.dockLayout.addRow(self.addLooseButton)
-        self.dockLayout.addItem(QSpacerItem(50,50))
-        self.dockLayout.addRow(self.revisionDataWindowButton)
-        self.dockLayout.addRow(self.cableDataWindowButton)
-        #self.dockLayout.addRow(self.selectMasterMatlistButton)
-        self.dockLayout.addItem(QSpacerItem(50,50))
-        self.dockLayout.addRow(self.saveButton)
-        self.dockLayout.addRow(self.saveAsButton)
-        self.dockLayout.addItem(QSpacerItem(50,300))
-        self.dockLayout.addRow(self.hintsButton)
-        #self.dockLayout.addRow(QPushButton("Test Button",clicked=))
+
         
-        self.dockMenu.setLayout(self.dockLayout)
-        self.dock.setWidget(self.dockMenu)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dock) 
+        self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
+        self.mainWindowLayout.addWidget(self.addItemButton,1,0)
+        self.mainWindowLayout.addWidget(self.searchByKeywordButton,3,0)
+        self.mainWindowLayout.addWidget(self.deleteRowButton,2,0)
+        self.mainWindowLayout.addWidget(self.newPanelName,0,1)
+        self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
+        self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
+        self.mainWindowLayout.addWidget(self.renamePanelButton,3,1)
+        self.mainWindowLayout.addWidget(self.deletePanelButton,4,1)
+        self.mainWindowLayout.addWidget(self.addLooseButton,5,1)
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,8,0)
+        self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
+        self.mainWindowLayout.addWidget(self.saveButton,12,0)
+        self.mainWindowLayout.addWidget(self.saveAsButton,13,0)
+        self.mainWindowLayout.addWidget(self.hintsButton,14,0)
+        self.mainWindowLayout.addWidget(self.tableWidget,0,2,15,1)
+
+
+        self.mainWindowWidget.setLayout(self.mainWindowLayout)
+        self.setCentralWidget(self.mainWindowWidget)
+
+
     def selectMasterMatlistFile(self):
         if not self.masterMatListPath:
             fileDialog = QFileDialog()

@@ -42,13 +42,15 @@ class customTableWidgetItem(QWidget):
     def buildLayout(self):
         self.oneLotCheckBox = QCheckBox("One Lot")
         self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
+        self.showDeviceNamesCheckBox.hide()
         self.countSelect = QSpinBox()
+        self.countSelect.setMaximumWidth(80)
         self.layout1 = QGridLayout()
         self.layout1.addWidget(self.countSelect,0,0)
         for i in range(len(self.deviceNames)):
-            self.layout1.addWidget(self.deviceNames[i],i+2,0,1,2)
+            self.layout1.addWidget(self.deviceNames[i],i+2,0,1,3)
         self.layout1.addWidget(self.oneLotCheckBox, 0, 1)
-        self.layout1.addWidget(self.showDeviceNamesCheckBox, 1, 1)
+        self.layout1.addWidget(self.showDeviceNamesCheckBox, 0, 2)
         self.setLayout(self.layout1)
         
     def updateOneLot(self):
@@ -77,7 +79,7 @@ class customTableWidgetItem(QWidget):
 
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
-        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,2)
+        self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,3)
         self.signals.saveCellData.emit()
 
     def removeDeviceNameSlot(self):
@@ -86,6 +88,15 @@ class customTableWidgetItem(QWidget):
         self.signals.saveCellData.emit()
 
     def spinBoxChanged(self):
+        if self.countSelect.value() == 0:
+            self.showDeviceNamesCheckBox.setChecked(False)
+            self.showDeviceNamesCheckBox.hide()
+            self.oneLotCheckBox.setChecked(False)
+            self.oneLotCheckBox.show()
+        else:
+            self.showDeviceNamesCheckBox.show()
+            self.oneLotCheckBox.setChecked(False)
+            self.oneLotCheckBox.hide()
         self.signals.saveCellData.emit()
 
     def lineEditFinished(self):
