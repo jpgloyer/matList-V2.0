@@ -117,9 +117,9 @@ class cableWindow(QDialog):
         self.cableTable.cellWidget(rowIndex,2).setCurrentText(cableLength)
         self.cableTable.cellWidget(rowIndex,2).currentTextChanged.connect(self.cableLengthChanged)
     def addCableRoutingBox(self, cableRoute, rowIndex, columnIndex):
-        item = customCableTableItem(self.signals,self.cableTable, cableRoute)
-        item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
-        item.setCurrentValues()
+        item = customCableTableItem(self.signals,self.cableTable, cableRoute, self.relayTypes,self.deviceNames,self.panelNos)
+        #item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
+        #item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, columnIndex, item)
 
     def removeCable(self):

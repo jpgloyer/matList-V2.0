@@ -18,27 +18,10 @@ class customTableWidgetItem(QWidget):
         self.buildCountSelect(count)    
         self.updateDeviceNameSlots()
 
-    def buildCheckBoxes(self):
-        self.oneLotCheckBox.clicked.connect(self.updateOneLot)
-        self.showDeviceNamesCheckBox.clicked.connect(self.updateDeviceNameSlots)
-        if len(self.deviceNames) > 0:
-            self.showDeviceNamesCheckBox.setChecked(True)
-
-    def buildCountSelect(self, count):
-        self.countSelect.setMaximum(999)
-        self.countSelect.valueChanged.connect(self.spinBoxChanged)
-        self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
-        if count == '1 Lot':
-            self.oneLotCheckBox.setChecked(True)
-            self.updateOneLot()
-        else:
-            self.countSelect.setValue(count)
-        
     def buildDeviceNames(self, deviceNames):
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
             self.deviceNames[i].editingFinished.connect(self.lineEditFinished)
-
     def buildLayout(self):
         self.oneLotCheckBox = QCheckBox("One Lot")
         self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
@@ -52,18 +35,20 @@ class customTableWidgetItem(QWidget):
         self.layout1.addWidget(self.oneLotCheckBox, 0, 1)
         self.layout1.addWidget(self.showDeviceNamesCheckBox, 0, 2)
         self.setLayout(self.layout1)
-        
-    def updateOneLot(self):
-        if self.oneLotCheckBox.isChecked():
-            self.countSelect.setValue(0)
-            self.countSelect.setDisabled(True)
-            self.showDeviceNamesCheckBox.setChecked(False)
-            self.showDeviceNamesCheckBox.setDisabled(True)
-            self.updateDeviceNameSlots()
+    def buildCheckBoxes(self):
+        self.oneLotCheckBox.clicked.connect(self.updateOneLot)
+        self.showDeviceNamesCheckBox.clicked.connect(self.updateDeviceNameSlots)
+        if len(self.deviceNames) > 0:
+            self.showDeviceNamesCheckBox.setChecked(True)
+    def buildCountSelect(self, count):
+        self.countSelect.setMaximum(999)
+        self.countSelect.valueChanged.connect(self.spinBoxChanged)
+        self.countSelect.valueChanged.connect(self.updateDeviceNameSlots)
+        if count == '1 Lot':
+            self.oneLotCheckBox.setChecked(True)
+            self.updateOneLot()
         else:
-            self.countSelect.setDisabled(False)
-            self.showDeviceNamesCheckBox.setDisabled(False)
-
+            self.countSelect.setValue(count)
     def updateDeviceNameSlots(self):
         if self.showDeviceNamesCheckBox.isChecked():
             while self.countSelect.value() != len(self.deviceNames):
@@ -77,11 +62,20 @@ class customTableWidgetItem(QWidget):
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeRowsToContents)
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeColumnsToContents)
 
+    def updateOneLot(self):
+        if self.oneLotCheckBox.isChecked():
+            self.countSelect.setValue(0)
+            self.countSelect.setDisabled(True)
+            self.showDeviceNamesCheckBox.setChecked(False)
+            self.showDeviceNamesCheckBox.setDisabled(True)
+            self.updateDeviceNameSlots()
+        else:
+            self.countSelect.setDisabled(False)
+            self.showDeviceNamesCheckBox.setDisabled(False)
     def addDeviceNameSlot(self):
         self.deviceNames.append(QLineEdit())
         self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,3)
         self.signals.saveCellData.emit()
-
     def removeDeviceNameSlot(self):
         self.layout1.removeWidget(self.deviceNames[-1])
         self.deviceNames.pop()
@@ -98,23 +92,23 @@ class customTableWidgetItem(QWidget):
             self.oneLotCheckBox.setChecked(False)
             self.oneLotCheckBox.hide()
         self.signals.saveCellData.emit()
-
     def lineEditFinished(self):
         self.signals.saveCellData.emit()
 
 class customCableTableItem(QWidget):
-    def __init__(self,signalClass, tableWidget, cable = {"relayType":"","deviceNo":"","port":"","panelNo":""}):
+    def __init__(self,signalClass, tableWidget, cable = {"relayType":"","deviceNo":"","port":"","panelNo":""},relayTypes = [],deviceNames = [], panelNos = []):
         super(customCableTableItem,self).__init__()
         self.signals=signalClass
         self.tableWidget = tableWidget
         self.cable = cable
+        self.relayTypes = relayTypes
+        self.panelNos = panelNos
+        self.deviceNames = deviceNames
         self.declareVariables()
         self.buildLayout()
-        self.initFinished = True
+        self.fillOptions()
         
-   
     def declareVariables(self):
-        self.initFinished: bool = False
         self.layout1 = QGridLayout()
         self.relayType = QComboBox()
         self.deviceName = QComboBox()
@@ -126,18 +120,9 @@ class customCableTableItem(QWidget):
         self.panelLabel = QLabel("Panel No")
     def buildLayout(self):
         self.relayType.setEditable(True)
-        self.relayType.addItem(self.cable["relayType"])
-        self.relayType.setCurrentIndex(0)
         self.deviceName.setEditable(True)
-        self.deviceName.addItem(self.cable["deviceNo"])
-        self.deviceName.setCurrentIndex(0)
         self.port.setEditable(True)
-        self.port.addItem(self.cable["port"])
-        self.port.setCurrentIndex(0)
-        self.panelNo.addItem(self.cable["panelNo"])
-        self.panelNo.setCurrentIndex(0)
         
-
         self.layout1.addWidget(self.relayLabel, 3, 0)
         self.layout1.addWidget(self.deviceLabel, 1, 0)
         self.layout1.addWidget(self.portLabel, 2, 0)
@@ -150,34 +135,20 @@ class customCableTableItem(QWidget):
 
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeRowsToContents)
         QtCore.QTimer.singleShot(0, self.tableWidget.resizeColumnsToContents)
-    def fillOptions(self, relayTypes, deviceNames, panelNos):
-        self.relayType.clear()
-        self.deviceName.clear()
-        self.port.clear()
-        self.panelNo.clear()
+    def fillOptions(self):
         for i in range(100):
             self.port.addItem(str(i))
-        for relayType in relayTypes:
+        for relayType in self.relayTypes:
             self.relayType.addItem(relayType)
-        for deviceName in deviceNames:
+        for deviceName in self.deviceNames:
             self.deviceName.addItem(deviceName)
-        for panel in panelNos:
+        for panel in self.panelNos:
             self.panelNo.addItem(panel)
-
-
-        
-
-    def setCurrentValues(self):
         self.relayType.setCurrentText(self.cable["relayType"])
         self.deviceName.setCurrentText(self.cable["deviceNo"])
         self.port.setCurrentText(self.cable["port"])
         self.panelNo.setCurrentText(self.cable["panelNo"])
+        
 
-        #self.relayType.currentTextChanged.connect(self.requestSave)
-        #self.deviceName.currentTextChanged.connect(self.requestSave)
-        #self.port.currentTextChanged.connect(self.requestSave)
-        #self.panelNo.currentTextChanged.connect(self.requestSave)
+        
 
-    #def requestSave(self):
-    #    if self.initFinished:
-    #        self.signals.saveCableData.emit()
