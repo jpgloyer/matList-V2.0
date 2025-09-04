@@ -451,7 +451,7 @@ class mainProgram(QMainWindow):
         self.revisionDataWindow1.exec()
     def showCableData(self):
         self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
-        self.cableDataWindow.show()
+        self.cableDataWindow.exec()
 
     #DATABASE FUNCTIONS
     def queryDatabase(self, query = "", databaseLocation = ""):

@@ -44,7 +44,7 @@ class cableWindow(QDialog):
 
         self.buildWindow()
         self.initializeCableTable()
-        self.buildDock()
+        #self.buildDock()
 
     def buildWindow(self):
         monitorXSize = int(self.monitor[0].width)
@@ -60,18 +60,24 @@ class cableWindow(QDialog):
         self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.cableTable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.cableTable.verticalScrollBar().setSingleStep(20)
-        self.setCentralWidget(self.cableTable)
+        self.centralLayout = QGridLayout()
+        self.centralLayout.addWidget(self.cableTable,0,1,99,1)
+        #self.setCentralWidget(self.cableTable)
+        self.centralLayout.addWidget(self.dockMenuButtonAddCable,0,0)
+        self.centralLayout.addWidget(self.dockMenuButtonRemoveCable,1,0)
 
         for rowIndex in range(len(self.cableData)):
             if self.cableTable.rowCount() < rowIndex:
                 self.cableTable.insertRow(self.cableTable.rowCount())
             self.addCable(self.cableData[rowIndex])
-    def buildDock(self):
-        self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
-        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
-        self.dockMenuWidget.setLayout(self.dockMenuLayout)
-        self.dockMenu.setWidget(self.dockMenuWidget)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
+
+        self.setLayout(self.centralLayout)
+    #def buildDock(self):
+        #self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
+        #self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
+        #self.dockMenuWidget.setLayout(self.dockMenuLayout)
+        #self.dockMenu.setWidget(self.dockMenuWidget)
+        #self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
 
     def addItemNoBox(self, itemNo, rowIndex):
         item = QLabel()
