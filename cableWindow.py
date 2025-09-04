@@ -13,7 +13,7 @@ import pandas as pd
 def naturalSortKey(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(re.compile('([0-9]+)'), s)]
 
-class cableWindow(QMainWindow):
+class cableWindow(QDialog):
     def __init__(self, signals, cableData = [], routingOptions = {"relayTypes":[], "deviceNames":[], "panelNos":[]}, cableOptions = [{"itemNo":"","cableType":"","length":""}]):
         super(cableWindow,self).__init__()
         self.monitor = get_monitors()

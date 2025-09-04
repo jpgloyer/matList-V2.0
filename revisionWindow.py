@@ -4,7 +4,7 @@ from PyQt5 import QtCore
 import sys
 
 
-class revisionWindow(QMainWindow):
+class revisionWindow(QDialog):
     def __init__(self, signals, revisionData: dict = {"date":[],"user":[],"description":[]}):
         super(revisionWindow,self).__init__()
         self.signals = signals
@@ -20,31 +20,35 @@ class revisionWindow(QMainWindow):
         self.setGeometry(QtCore.QRect(self.xShift,self.yShift,self.xSize,self.ySize))
 
         self.revisionTable = QTableWidget()
-        self.dockMenuButtonAddRevision = QPushButton()
-        self.dockMenuButtonRemoveRevision = QPushButton()
+        self.addRevisionButton = QPushButton()
+        self.removeRevisionButton = QPushButton()
         self.printOutput = QPushButton()
         self.dockMenuLayout = QFormLayout()
         self.dockMenuWidget = QWidget()
         self.dockMenu = QDockWidget()
 
 
-        self.dockMenuButtonAddRevision.setText('Add Revision')
-        self.dockMenuButtonAddRevision.clicked.connect(self.addRevision)
-        self.dockMenuButtonRemoveRevision.setText('Remove Currently Selected Revision')
-        self.dockMenuButtonRemoveRevision.clicked.connect(self.removeRevision)
-        self.dockMenuLayout.addRow(self.dockMenuButtonAddRevision)
-        self.dockMenuLayout.addRow(self.dockMenuButtonRemoveRevision)
+        self.addRevisionButton.setText('Add Revision')
+        self.addRevisionButton.clicked.connect(self.addRevision)
+        self.removeRevisionButton.setText('Remove Currently Selected Revision')
+        self.removeRevisionButton.clicked.connect(self.removeRevision)
+        #self.dockMenuLayout.addRow(self.addRevisionButton)
+        #self.dockMenuLayout.addRow(self.removeRevisionButton)
         #self.dockMenuLayout.addRow(self.printOutput)
         self.revisionTable.setColumnCount(len(self.revisionData))
 
         self.revisionTable.setHorizontalHeaderLabels(self.revisionData.keys())
         self.revisionTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-
-        self.dockMenuWidget.setLayout(self.dockMenuLayout)
-        self.dockMenu.setWidget(self.dockMenuWidget)
-        self.setCentralWidget(self.revisionTable)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
+        self.centralLayout = QGridLayout()
+        self.centralLayout.addWidget(self.revisionTable, 0,1,99,1)
+        self.centralLayout.addWidget(self.addRevisionButton,0,0)
+        self.centralLayout.addWidget(self.removeRevisionButton,1,0)
+        #self.dockMenuWidget.setLayout(self.dockMenuLayout)
+        #self.dockMenu.setWidget(self.dockMenuWidget)
+        self.setLayout(self.centralLayout)
+        #self.setCentralWidget(self.revisionTable)
+        #self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
         self.fillTable()
 
     def fillTable(self):

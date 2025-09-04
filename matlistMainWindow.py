@@ -78,7 +78,7 @@ class mainProgram(QMainWindow):
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
-        self.revisionDataWindowButton = QPushButton("Show Revision Data",clicked=self.showRevisionData)
+        self.revisionDataWindowButton = QPushButton("Revisions",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
         self.searchByKeywordButton = QPushButton("Search by Keyword",clicked=self.searchByKeyword)
 
@@ -230,11 +230,11 @@ class mainProgram(QMainWindow):
             self.addLooseButton.hide()
         
 
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,8,0)
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,1)
         self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
 
-        self.mainWindowLayout.addWidget(self.saveButton,12,0)
-        self.mainWindowLayout.addWidget(self.saveAsButton,13,0)
+        self.mainWindowLayout.addWidget(self.saveButton,13,1)
+        self.mainWindowLayout.addWidget(self.saveAsButton,14,1)
         self.mainWindowLayout.addWidget(self.hintsButton,14,0)
 
         self.mainWindowLayout.addWidget(self.tableWidget,0,2,15,1)
@@ -448,7 +448,7 @@ class mainProgram(QMainWindow):
     #OTHER WINDOWS
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.data['revisions'])
-        self.revisionDataWindow1.show()
+        self.revisionDataWindow1.exec()
     def showCableData(self):
         self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
         self.cableDataWindow.show()
