@@ -34,7 +34,6 @@ class cableWindow(QDialog):
         self.buildWindow()
         self.buildUI()
         
-
     def declareVariables(self):
         self.signals: signalClass
 
@@ -52,7 +51,6 @@ class cableWindow(QDialog):
         self.cableTable = QTableWidget()
 
         self.centralLayout = QGridLayout()
-
     def buildWindow(self):
         monitor = get_monitors()
         monitorXSize = int(monitor[0].width)
