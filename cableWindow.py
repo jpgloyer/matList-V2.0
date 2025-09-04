@@ -32,7 +32,8 @@ class cableWindow(QDialog):
         self.panelNos.extend(routingOptions["panelNos"])
 
         self.buildWindow()
-        self.initializeCableTable()
+        self.buildUI()
+        
 
     def declareVariables(self):
         self.signals: signalClass
@@ -61,12 +62,14 @@ class cableWindow(QDialog):
         xSize = int(monitorXSize*.8)
         ySize = int(monitorYSize*.8)
         self.setGeometry(QtCore.QRect(xShift,yShift,xSize,ySize))
-    def initializeCableTable(self):
+    def buildUI(self):
         self.cableTable.setColumnCount(5)
         self.cableTable.setHorizontalHeaderLabels(["Item No", "Cable Type", "Length", "From", "To"])
         self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.cableTable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.cableTable.verticalScrollBar().setSingleStep(20)
+        self.cableTable.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.cableTable.horizontalScrollBar().setSingleStep(20)
         
         self.centralLayout.addWidget(self.cableTable,0,1,99,1)
         self.centralLayout.addWidget(self.addCableButton,0,0)
@@ -78,22 +81,29 @@ class cableWindow(QDialog):
             self.addCable(self.cableData[rowIndex])
 
         self.setLayout(self.centralLayout)
-
+    
+    def addCable(self, cable = False):
+        if cable == False:
+            cable = {"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
+        self.cableTable.insertRow(self.cableTable.rowCount())
+        rowIndex = self.cableTable.rowCount()-1
+        self.addItemNoBox(cable["itemNo"],rowIndex)
+        self.addCableTypeBox(cable["cableType"],rowIndex)
+        self.addCableLengthBox(cable["length"],rowIndex)
+        self.addCableRoutingBox(cable["from"], rowIndex, 3)
+        self.addCableRoutingBox(cable["to"], rowIndex , 4)
     def addItemNoBox(self, itemNo, rowIndex):
         item = QLabel()
         item.setText(itemNo)
         self.cableTable.setCellWidget(rowIndex, 0, item)
-
-
     def addCableTypeBox(self, cableType, rowIndex):
         item = QComboBox()
         for cableType1 in self.cableTypes:
             item.addItem(cableType1)
+        
         self.cableTable.setCellWidget(rowIndex, 1, item)
         self.cableTable.cellWidget(rowIndex,1).setCurrentText(cableType)
         self.cableTable.cellWidget(rowIndex,1).currentTextChanged.connect(self.cableTypeChanged)
-
-
     def addCableLengthBox(self, cableLength, rowIndex):
         item = QComboBox()
         choices = []
@@ -105,33 +115,45 @@ class cableWindow(QDialog):
         choices.sort(key=naturalSortKey)
         for choice in choices:
                     item.addItem(choice)
-
         self.cableTable.setCellWidget(rowIndex, 2, item)
         self.cableTable.cellWidget(rowIndex,2).setCurrentText(cableLength)
         self.cableTable.cellWidget(rowIndex,2).currentTextChanged.connect(self.cableLengthChanged)
-
     def addCableRoutingBox(self, cableRoute, rowIndex, columnIndex):
         item = customCableTableItem(self.signals,self.cableTable, cableRoute)
         item.fillOptions(self.relayTypes, self.deviceNames, self.panelNos)
         item.setCurrentValues()
         self.cableTable.setCellWidget(rowIndex, columnIndex, item)
 
-    def addCable(self, cable = False):
-        if cable == False:
-            cable = {"itemNo":"","cableType":"","length":"","from":{"relayType":"","deviceNo":"","port":"","panelNo":""},"to":{"relayType":"","deviceNo":"","port":"","panelNo":""}}
-        self.cableTable.insertRow(self.cableTable.rowCount())
-        rowIndex = self.cableTable.rowCount()-1
-        self.addItemNoBox(cable["itemNo"],rowIndex)
-        self.addCableTypeBox(cable["cableType"],rowIndex)
-        self.addCableLengthBox(cable["length"],rowIndex)
-        self.addCableRoutingBox(cable["from"], rowIndex, 3)
-        self.addCableRoutingBox(cable["to"], rowIndex , 4)
-
     def removeCable(self):
         self.cableTable.removeRow(self.cableTable.currentRow())
+        #self.requestSave()
+    
+    def cableTypeChanged(self):
+        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText("")#SET ITEM NO TO BLANK
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).setCurrentText("")#SET LENGTH TO BLANK
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).clear()#CLEAR LENGTH OPTIONS
+        #FILL LENGTH OPTIONS
+        self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem("")
+        choices = []
+        for cable in self.cableOptions:
+            if cable["cableType"] == self.sender().currentText():
+                if self.cableTable.cellWidget(self.cableTable.currentRow(),2).findText(cable["length"]) == -1:
+                    choices.append(cable["length"])
+        choices.sort(key=naturalSortKey)
+        for choice in choices:
+            self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem(choice)
+        #self.requestSave()
+    def cableLengthChanged(self):
+        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))
+        #self.requestSave()
+    def getItemNoFromDesc(self,cabletype,cableLength):
+        for cable in self.cableOptions:
+            if cabletype == cable["cableType"] and cableLength == cable["length"]:
+                return cable["itemNo"]
+        return None
+    
     def closeEvent(self,event):
         self.developOutputDictionary()
-        self.signals.saveCableData.emit()
     def developOutputDictionary(self):
         self.cableData = []
         for rowIndex in range(self.cableTable.rowCount()):
@@ -150,33 +172,3 @@ class cableWindow(QDialog):
             cable["to"]["port"] = self.cableTable.cellWidget(rowIndex,4).port.currentText()
             cable["to"]["panelNo"] = self.cableTable.cellWidget(rowIndex,4).panelNo.currentText()
             self.cableData.append(cable)
-    
-    def getItemNoFromDesc(self,cabletype,cableLength):
-        for cable in self.cableOptions:
-            if cabletype == cable["cableType"] and cableLength == cable["length"]:
-                return cable["itemNo"]
-        return None
-
-    def getDescFromItemNo(self,itemNo):
-        for cable in self.cableOptions:
-            if itemNo == cable["itemNo"]:
-                return cable["cableType"], cable["length"]
-        return None, None
-
-    def cableTypeChanged(self):
-        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText("")#SET ITEM NO TO BLANK
-        self.cableTable.cellWidget(self.cableTable.currentRow(),2).setCurrentText("")#SET LENGTH TO BLANK
-        self.cableTable.cellWidget(self.cableTable.currentRow(),2).clear()#CLEAR LENGTH OPTIONS
-        #FILL LENGTH OPTIONS
-        self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem("")
-        choices = []
-        for cable in self.cableOptions:
-            if cable["cableType"] == self.sender().currentText():
-                if self.cableTable.cellWidget(self.cableTable.currentRow(),2).findText(cable["length"]) == -1:
-                    choices.append(cable["length"])
-        choices.sort(key=naturalSortKey)
-        for choice in choices:
-            self.cableTable.cellWidget(self.cableTable.currentRow(),2).addItem(choice)
-
-    def cableLengthChanged(self):
-        self.cableTable.cellWidget(self.cableTable.currentRow(),0).setText(self.getItemNoFromDesc(self.cableTable.cellWidget(self.cableTable.currentRow(),1).currentText(), self.sender().currentText()))

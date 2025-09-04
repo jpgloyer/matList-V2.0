@@ -117,8 +117,6 @@ class mainProgram(QMainWindow):
         #self.cableDataWindow = cableWindow()
         #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
     def connectSignals(self):
-        self.signals.saveRevisionData.connect(self.saveRevisionData)
-        self.signals.saveCableData.connect(self.saveCableData)
         self.signals.saveCellData.connect(self.saveCellData)
         self.quit.triggered.connect(self.closeEvent)
     def connectShortcuts(self):
@@ -341,12 +339,6 @@ class mainProgram(QMainWindow):
         self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note = QInputDialog.getText(self,'Cell Note',f"Enter Note for item {self.uniqueItemNumbers[self.currentlySelectedCell[0]]} on panel {self.panelNames[self.currentlySelectedCell[1]]}",text=self.tableWidget.cellWidget(self.currentlySelectedCell[0],self.currentlySelectedCell[1]).note)[0]
 
     #SIGNAL FUNCTIONS
-    def saveCableData(self):
-        self.data['cables'] = self.cableDataWindow.cableData
-        self.saved = False
-    def saveRevisionData(self):
-        self.data['revisions'] = self.revisionDataWindow1.revisionData
-        self.saved = False
     def saveCellData(self):
         self.saved = False
 
@@ -379,7 +371,7 @@ class mainProgram(QMainWindow):
         self.newFile = True
         self.save()
 
-    #DOCK FUNCTIONS
+    #MENU FUNCTIONS
     def addItem(self):
         if self.addItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
             self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -449,9 +441,15 @@ class mainProgram(QMainWindow):
     def showRevisionData(self):
         self.revisionDataWindow1 = revisionWindow(self.signals, self.data['revisions'])
         self.revisionDataWindow1.exec()
+        if self.data['revisions'] != self.revisionDataWindow1.revisionData:
+            self.saved = False
+            self.data['revisions'] = self.revisionDataWindow1.revisionData
     def showCableData(self):
         self.cableDataWindow = cableWindow(self.signals,self.data['cables'],self.getCableRoutingOptions(),self.getCableOptions())
         self.cableDataWindow.exec()
+        if self.data['cables'] != self.cableDataWindow.cableData:
+            self.saved = False
+            self.data['cables'] = self.cableDataWindow.cableData
 
     #DATABASE FUNCTIONS
     def queryDatabase(self, query = "", databaseLocation = ""):

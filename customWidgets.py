@@ -110,8 +110,11 @@ class customCableTableItem(QWidget):
         self.cable = cable
         self.declareVariables()
         self.buildLayout()
+        self.initFinished = True
+        
    
     def declareVariables(self):
+        self.initFinished: bool = False
         self.layout1 = QGridLayout()
         self.relayType = QComboBox()
         self.deviceName = QComboBox()
@@ -134,6 +137,7 @@ class customCableTableItem(QWidget):
         self.panelNo.addItem(self.cable["panelNo"])
         self.panelNo.setCurrentIndex(0)
         
+
         self.layout1.addWidget(self.relayLabel, 3, 0)
         self.layout1.addWidget(self.deviceLabel, 1, 0)
         self.layout1.addWidget(self.portLabel, 2, 0)
@@ -160,8 +164,20 @@ class customCableTableItem(QWidget):
         for panel in panelNos:
             self.panelNo.addItem(panel)
 
+
+        
+
     def setCurrentValues(self):
         self.relayType.setCurrentText(self.cable["relayType"])
         self.deviceName.setCurrentText(self.cable["deviceNo"])
         self.port.setCurrentText(self.cable["port"])
         self.panelNo.setCurrentText(self.cable["panelNo"])
+
+        #self.relayType.currentTextChanged.connect(self.requestSave)
+        #self.deviceName.currentTextChanged.connect(self.requestSave)
+        #self.port.currentTextChanged.connect(self.requestSave)
+        #self.panelNo.currentTextChanged.connect(self.requestSave)
+
+    #def requestSave(self):
+    #    if self.initFinished:
+    #        self.signals.saveCableData.emit()
