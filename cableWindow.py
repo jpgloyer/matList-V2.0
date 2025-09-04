@@ -16,39 +16,46 @@ def naturalSortKey(s):
 class cableWindow(QDialog):
     def __init__(self, signals, cableData = [], routingOptions = {"relayTypes":[], "deviceNames":[], "panelNos":[]}, cableOptions = [{"itemNo":"","cableType":"","length":""}]):
         super(cableWindow,self).__init__()
-        self.monitor = get_monitors()
+        self.declareVariables()
         
-        self.signals: signalClass = signals
-
-        self.cableData: list = cableData
-
-        self.relayTypes: list = [""]+routingOptions["relayTypes"]
-        self.deviceNames: list = [""]+routingOptions["deviceNames"]
-        self.panelNos: list = [""]+routingOptions["panelNos"]
-
-        self.cableOptions: list = cableOptions
-        self.itemNos: list = list(dict.fromkeys([""]+[cable["itemNo"] for cable in cableOptions]))
-        self.cableTypes: list = list(dict.fromkeys([""]+[cable["cableType"] for cable in cableOptions]))
-        self.cableLengths: list = list(dict.fromkeys([""]+[cable["length"] for cable in cableOptions]))
-        self.itemNos.sort(key=naturalSortKey)
+        self.signals = signals
+        self.cableData = cableData
+        
+        self.cableOptions = cableOptions
+        self.cableTypes.extend(list(dict.fromkeys([cable["cableType"] for cable in cableOptions])))
+        self.cableLengths.extend(list(dict.fromkeys([cable["length"] for cable in cableOptions])))
         self.cableTypes.sort(key=naturalSortKey)
         self.cableLengths.sort(key=naturalSortKey)
 
-        self.dockMenu = QDockWidget()
-        self.dockMenuWidget = QWidget()
-        self.dockMenuLayout = QFormLayout()
-        self.dockMenuButtonAddCable = QPushButton("Add Cable",clicked=self.addCable)
-        self.dockMenuButtonRemoveCable = QPushButton("Remove Currently Selected Cable",clicked=self.removeCable)
-        self.cableTable = QTableWidget()
-
+        self.relayTypes.extend(routingOptions["relayTypes"])
+        self.deviceNames.extend(routingOptions["deviceNames"])
+        self.panelNos.extend(routingOptions["panelNos"])
 
         self.buildWindow()
         self.initializeCableTable()
-        #self.buildDock()
+
+    def declareVariables(self):
+        self.signals: signalClass
+
+        self.cableData: list = []
+        self.relayTypes: list = [""]
+        self.deviceNames: list = [""]
+        self.panelNos: list = [""]
+        self.cableOptions: list = []
+        self.cableTypes: list = [""]
+        self.cableLengths: list = [""]
+
+        self.addCableButton = QPushButton("Add Cable",clicked=self.addCable)
+        self.removeCableButton = QPushButton("Remove Currently Selected Cable",clicked=self.removeCable)
+        
+        self.cableTable = QTableWidget()
+
+        self.centralLayout = QGridLayout()
 
     def buildWindow(self):
-        monitorXSize = int(self.monitor[0].width)
-        monitorYSize = int(self.monitor[0].height)
+        monitor = get_monitors()
+        monitorXSize = int(monitor[0].width)
+        monitorYSize = int(monitor[0].height)
         xShift = int(monitorXSize*.1)
         yShift = int(monitorYSize*.1)
         xSize = int(monitorXSize*.8)
@@ -60,11 +67,10 @@ class cableWindow(QDialog):
         self.cableTable.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
         self.cableTable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.cableTable.verticalScrollBar().setSingleStep(20)
-        self.centralLayout = QGridLayout()
+        
         self.centralLayout.addWidget(self.cableTable,0,1,99,1)
-        #self.setCentralWidget(self.cableTable)
-        self.centralLayout.addWidget(self.dockMenuButtonAddCable,0,0)
-        self.centralLayout.addWidget(self.dockMenuButtonRemoveCable,1,0)
+        self.centralLayout.addWidget(self.addCableButton,0,0)
+        self.centralLayout.addWidget(self.removeCableButton,1,0)
 
         for rowIndex in range(len(self.cableData)):
             if self.cableTable.rowCount() < rowIndex:
@@ -72,12 +78,6 @@ class cableWindow(QDialog):
             self.addCable(self.cableData[rowIndex])
 
         self.setLayout(self.centralLayout)
-    #def buildDock(self):
-        #self.dockMenuLayout.addRow(self.dockMenuButtonAddCable)
-        #self.dockMenuLayout.addRow(self.dockMenuButtonRemoveCable)
-        #self.dockMenuWidget.setLayout(self.dockMenuLayout)
-        #self.dockMenu.setWidget(self.dockMenuWidget)
-        #self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, self.dockMenu)
 
     def addItemNoBox(self, itemNo, rowIndex):
         item = QLabel()
