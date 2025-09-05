@@ -12,23 +12,29 @@ class customTableWidgetItem(QWidget):
         self.tableWidget = tableWidget
         self.deviceNames = [QLineEdit() for i in deviceNames]
 
+        self.declareVariables()
         self.buildDeviceNames(deviceNames)
         self.buildLayout()
         self.buildCheckBoxes()
         self.buildCountSelect(count)    
         self.updateDeviceNameSlots()
 
+    def declareVariables(self):
+        self.layout1 = QGridLayout()
+        self.oneLotCheckBox = QCheckBox("One Lot")
+        self.countSelect = QSpinBox()
+        self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
+
+        self.needsSaved: bool = False
+
+
     def buildDeviceNames(self, deviceNames):
         for i in range(len(deviceNames)):
             self.deviceNames[i].setText(deviceNames[i])
             self.deviceNames[i].editingFinished.connect(self.lineEditFinished)
     def buildLayout(self):
-        self.oneLotCheckBox = QCheckBox("One Lot")
-        self.showDeviceNamesCheckBox = QCheckBox("Show Device Names")
         self.showDeviceNamesCheckBox.hide()
-        self.countSelect = QSpinBox()
         self.countSelect.setMaximumWidth(80)
-        self.layout1 = QGridLayout()
         self.layout1.addWidget(self.countSelect,0,0)
         for i in range(len(self.deviceNames)):
             self.layout1.addWidget(self.deviceNames[i],i+2,0,1,3)
@@ -76,6 +82,7 @@ class customTableWidgetItem(QWidget):
         self.deviceNames.append(QLineEdit())
         self.layout1.addWidget(self.deviceNames[-1],len(self.deviceNames)+2,0,1,3)
         self.signals.saveCellData.emit()
+
     def removeDeviceNameSlot(self):
         self.layout1.removeWidget(self.deviceNames[-1])
         self.deviceNames.pop()

@@ -196,12 +196,26 @@ class mainProgram(QMainWindow):
         self.tableWidget.horizontalScrollBar().setSingleStep(20)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
-
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             for columnIndex, column in enumerate(self.panelNames):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
-
         self.refreshCells()
+
+        buttonWidth = int(self.monitor[0].width*.1)
+        self.newPanelDescription.setFixedWidth(buttonWidth)
+        self.newPanelName.setFixedWidth(buttonWidth)
+        self.searchByKeywordButton.setFixedWidth(buttonWidth)
+        self.cableDataWindowButton.setFixedWidth(buttonWidth)
+        self.revisionDataWindowButton.setFixedWidth(buttonWidth)
+        self.addLooseButton.setFixedWidth(buttonWidth)
+        self.renamePanelButton.setFixedWidth(buttonWidth)
+        self.hintsButton.setFixedWidth(buttonWidth)
+        self.deletePanelButton.setFixedWidth(buttonWidth)
+        self.addPanelButton.setFixedWidth(buttonWidth)
+        self.deleteRowButton.setFixedWidth(buttonWidth)
+        self.saveAsButton.setFixedWidth(buttonWidth)
+        self.saveButton.setFixedWidth(buttonWidth)
+        self.addItemButton.setFixedWidth(buttonWidth)
 
 
         self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
@@ -236,7 +250,6 @@ class mainProgram(QMainWindow):
         self.mainWindowLayout.addWidget(self.hintsButton,14,0)
 
         self.mainWindowLayout.addWidget(self.tableWidget,0,2,15,1)
-
 
         self.mainWindowWidget.setLayout(self.mainWindowLayout)
         self.setCentralWidget(self.mainWindowWidget)
