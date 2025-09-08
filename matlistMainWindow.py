@@ -41,6 +41,7 @@ class mainProgram(QMainWindow):
             self.buildNewMatlist()
         self.buildMainWindow()
         self.buildUI()
+        self.scaleUI()
         self.selectMasterMatlistFile()
         self.buildMasterMatList()
         self.saved = True
@@ -54,6 +55,7 @@ class mainProgram(QMainWindow):
         self.saved: bool = False
         self.loosePanelPresent: bool = False
         self.newFile: bool = True
+        self.hidingMenu: bool = False
 
         self.currentlySelectedCell:list = [0,0]
         self.panelNames:list = []
@@ -81,6 +83,8 @@ class mainProgram(QMainWindow):
         self.revisionDataWindowButton = QPushButton("Revisions",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
         self.searchByKeywordButton = QPushButton("Search by Keyword",clicked=self.searchByKeyword)
+        self.preferencesWindowButton = QPushButton("Preferences",clicked=self.preferencesWindow)
+        self.showHideMenuButton = QPushButton("Hide Menu",clicked=self.showHideMenu)
 
         self.newPanelName = QLineEdit()
         self.newPanelDescription = QLineEdit()
@@ -109,6 +113,13 @@ class mainProgram(QMainWindow):
         self.refreshDockShortcut = QShortcut(QtGui.QKeySequence(self.tr("D")),self)
         self.helpShortcut = QShortcut(QtGui.QKeySequence(self.tr("H")),self)
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
+
+        self.scaleWidget = QSpinBox()
+        self.scaleWidget.setValue(100)
+        self.scaleWidget.setMinimum(10)#10% size
+        self.scaleWidget.setMaximum(300)#300% size
+        self.scaleWidget.valueChanged.connect(self.scaleUI)
+
 
 
 
@@ -200,8 +211,47 @@ class mainProgram(QMainWindow):
             for columnIndex, column in enumerate(self.panelNames):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
         self.refreshCells()
+        
+        self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
+        for item in self.masterMatList.keys():
+            self.addItemSelect.addItem(item)
 
-        buttonWidth = int(self.monitor[0].width*.1)
+        self.newPanelName.setPlaceholderText('Panel Name')
+        self.newPanelDescription.setPlaceholderText('Panel Description')
+            
+        self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
+        self.mainWindowLayout.addWidget(self.addItemButton,1,0)
+        self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
+        self.mainWindowLayout.addWidget(self.searchByKeywordButton,2,0)
+
+        self.mainWindowLayout.addWidget(self.newPanelName,0,1)
+        self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
+        self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
+        self.mainWindowLayout.addWidget(self.renamePanelButton,5,1)
+        self.mainWindowLayout.addWidget(self.deletePanelButton,4,1)
+        self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
+        if self.loosePanelPresent == True:
+            self.addLooseButton.setDisabled(True)
+            self.addLooseButton.hide()
+        
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,1)
+        self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
+
+        self.mainWindowLayout.addWidget(self.saveButton,13,1)
+        self.mainWindowLayout.addWidget(self.saveAsButton,14,1)
+        self.mainWindowLayout.addWidget(self.hintsButton,14,0)
+        #self.mainWindowLayout.addWidget(self.scaleWidget,13,0)
+        self.mainWindowLayout.addWidget(self.preferencesWindowButton,13,0)
+
+        self.mainWindowLayout.addWidget(self.showHideMenuButton,0,2,15,1)
+
+        self.mainWindowLayout.addWidget(self.tableWidget,0,3,15,1)
+
+        self.mainWindowWidget.setLayout(self.mainWindowLayout)
+        self.setCentralWidget(self.mainWindowWidget)
+
+    def scaleUI(self):
+        buttonWidth = int(self.monitor[0].width*.1*self.scaleWidget.value()/100)
         self.newPanelDescription.setFixedWidth(buttonWidth)
         self.newPanelName.setFixedWidth(buttonWidth)
         self.searchByKeywordButton.setFixedWidth(buttonWidth)
@@ -218,41 +268,30 @@ class mainProgram(QMainWindow):
         self.addItemButton.setFixedWidth(buttonWidth)
 
 
-        self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
-        for item in self.masterMatList.keys():
-            self.addItemSelect.addItem(item)
+    def preferencesWindow(self):
+        preferencesWindow = QDialog()
+        preferencesWindow.setWindowTitle("User Preferences")
+        preferencesWindow.setMinimumSize(500,500)
+        preferencesWindowLayout = QGridLayout()
+        preferencesWindowLayout.addWidget(QLabel("UI Scale"),0,0)
+        preferencesWindowLayout.addWidget(self.scaleWidget,0,1)
+        preferencesWindow.setLayout(preferencesWindowLayout)
+        preferencesWindow.exec()
 
-        self.newPanelName.setPlaceholderText('Panel Name')
-        self.newPanelDescription.setPlaceholderText('Panel Description')
-        
+    def showHideMenu(self):
+        if self.hidingMenu == False:
+            self.saveAsButton.hide()
+            #rest of buttons here
+            self.hidingMenu = True
+            self.showHideMenuButton.setText("Show Menu")
+            pass
+        else:
+            self.saveAsButton.show()
+            #rest of buttons here
+            self.hidingMenu = False
+            self.showHideMenuButton.setText("Hide Menu")
+            pass
 
-        self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
-        self.mainWindowLayout.addWidget(self.addItemButton,1,0)
-        self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
-        self.mainWindowLayout.addWidget(self.searchByKeywordButton,2,0)
-
-        self.mainWindowLayout.addWidget(self.newPanelName,0,1)
-        self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
-        self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
-        self.mainWindowLayout.addWidget(self.renamePanelButton,5,1)
-        self.mainWindowLayout.addWidget(self.deletePanelButton,4,1)
-        self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
-        if self.loosePanelPresent == True:
-            self.addLooseButton.setDisabled(True)
-            self.addLooseButton.hide()
-        
-
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,1)
-        self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
-
-        self.mainWindowLayout.addWidget(self.saveButton,13,1)
-        self.mainWindowLayout.addWidget(self.saveAsButton,14,1)
-        self.mainWindowLayout.addWidget(self.hintsButton,14,0)
-
-        self.mainWindowLayout.addWidget(self.tableWidget,0,2,15,1)
-
-        self.mainWindowWidget.setLayout(self.mainWindowLayout)
-        self.setCentralWidget(self.mainWindowWidget)
 
 
     def selectMasterMatlistFile(self):
