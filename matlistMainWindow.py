@@ -159,6 +159,7 @@ class mainProgram(QMainWindow):
 
     def showCutsheetLocationFileDialog(self):
         self.cutsheetLocationFileDialog.exec()
+        self.cutsheetFolderpath = self.cutsheetLocationFileDialog.selectedFiles()[0]
 
 
     def connectSignals(self):
@@ -210,6 +211,8 @@ class mainProgram(QMainWindow):
             self.panelDescriptions = [self.data[header]["description"] for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"] and "description" in self.data[header]]
             self.loosePanelPresent = 'Loose and Not Mounted' in self.data
             self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
+            self.includeCutsheetsCheckBox.setChecked(self.data["miscellaneousInfo"]["includeCatalogCuts"])
+            self.cutsheetFolderpath = self.data["miscellaneousInfo"]["catalogCutsheetFolder"]
             self.uniqueItemNumbers = [item for item in self.data[list(self.data.keys())[0]] if item != 'description']
             self.uniqueItemNumbers.sort(key=naturalSortKey)
         except:
@@ -344,9 +347,9 @@ class mainProgram(QMainWindow):
             self.searchByKeywordButton.show()
             self.preferencesWindowButton.show()
             self.cutSheetLocationFileDialogButton.show()
-            self.newPanelName.hide()
-            self.newPanelDescription.hide()
-            self.addItemSelect.hide()
+            self.newPanelName.show()
+            self.newPanelDescription.show()
+            self.addItemSelect.show()
             #rest of buttons here
             self.hidingMenu = False
             self.showHideMenuButton.setText("<")
@@ -463,7 +466,7 @@ class mainProgram(QMainWindow):
                 outputDictionary[panel][item] = {"names": [i.text() for i in self.tableWidget.cellWidget(row,column).deviceNames], "description":"","note":self.tableWidget.cellWidget(row, column).note,"count":self.tableWidget.cellWidget(row,column).countSelect.value() if not self.tableWidget.cellWidget(row,column).oneLotCheckBox.isChecked() else '1 Lot'} #Fill this dict using one-line method
         outputDictionary['revisions'] = self.data['revisions']
         outputDictionary['cables'] = self.data['cables']
-        outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath}
+        outputDictionary['miscellaneousInfo'] = {"masterMatListPath":self.masterMatListPath,"includeCatalogCuts":self.includeCutsheetsCheckBox.isChecked(),"catalogCutsheetFolder":self.cutsheetFolderpath}
         return outputDictionary
     def saveJSONFile(self):
         with open(self.matListFileName,'w') as outfile:
@@ -731,16 +734,25 @@ class mainProgram(QMainWindow):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
     def combineCutsheets(self):
-        cutsheetFolder = self.cutsheetLocationFileDialog.selectedFiles()[0]
-        allCutsheetPaths = [cutsheet for cutsheet in os.listdir(cutsheetFolder) if os.path.splitext(cutsheet)[1]==".pdf"]
+        #self.cutsheetFolderpath = self.cutsheetLocationFileDialog.selectedFiles()[0]
+        allCutsheetPaths = [cutsheet for cutsheet in os.listdir(self.cutsheetFolderpath) if os.path.splitext(cutsheet)[1]==".pdf"]
         projectCutsheetPaths = [cutsheet for cutsheet in allCutsheetPaths if cutsheet.split(" ")[0] in self.uniqueItemNumbers]
         projectCutsheetPaths.sort(key=naturalSortKey)
         merger = PdfMerger()
         merger.append(self.pdfFileName)
         for pdf in projectCutsheetPaths:
-            merger.append(cutsheetFolder+"/"+pdf)
+            merger.append(self.cutsheetFolderpath+"/"+pdf)
 
-        merger.write(self.pdfFileName)
+        loopVariable = True
+        while loopVariable:
+            try:
+                merger.write(self.pdfFileName)
+                loopVariable = False
+            except:
+                message = QMessageBox()
+                message.setText("Error Packaging Cutsheets\nPDF Created without Cutsheets")
+                loopVariable = False
+                #Maybe implement an opportunity to try again
         merger.close()
 
         
