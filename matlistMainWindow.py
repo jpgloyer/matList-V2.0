@@ -731,14 +731,19 @@ class mainProgram(QMainWindow):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
     def combineCutsheets(self):
-        rootDir = self.cutsheetLocationFileDialog.selectedFiles()[0]
-        outputFileName = self.pdfFileName.rstrip(".pdf")+"(cutsheets only).pdf"
+        cutsheetFolder = self.cutsheetLocationFileDialog.selectedFiles()[0]
+        cutsheetPaths = [cutsheet for cutsheet in os.listdir(cutsheetFolder) if os.path.splitext(cutsheet)[1]==".pdf"]
         merger = PdfMerger()
-        allpdfs = [a for a in glob("*.pdf", root_dir=rootDir)]
-        cutsheetPDFs = [pdf for pdf in allpdfs if pdf.split(" ")[0] in self.uniqueItemNumbers]
-        [merger.append(rootDir+"\\"+pdf) for pdf in cutsheetPDFs]
-        with open(outputFileName, "wb") as new_file:
-            merger.write(new_file)
+        merger.append(self.pdfFileName)
+
+        for pdf in cutsheetPaths:
+            merger.append(cutsheetFolder+"/"+pdf)
+
+        merger.write(self.pdfFileName)
+        merger.close()
+
+        #MERGE THE NO-CUTSHEET PDF FILE WITH THE ONLY CUTSHEETS PDF FILE HERE
+        
 
         
 #SIGNALS
