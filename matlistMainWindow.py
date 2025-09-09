@@ -97,7 +97,6 @@ class mainProgram(QMainWindow):
         self.newPanelDescription = QLineEdit()
 
         self.cutsheetLocationFileDialog = QFileDialog()
-        self.cutsheetLocationFileDialog.setFileMode(QFileDialog.Directory)
 
         self.addItemSelect = QComboBox()
 
@@ -139,7 +138,6 @@ class mainProgram(QMainWindow):
         #self.revisionDataWindow1 = revisionWindow()
         #self.cableDataWindow = cableWindow()
         #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
-
     def buildPreferencesWindow(self):
         self.scaleWidget.setValue(100)
         self.scaleWidget.setMinimum(10)#10% size
@@ -154,14 +152,6 @@ class mainProgram(QMainWindow):
         self.preferencesWindow.setLayout(self.preferencesWindowLayout)
         self.preferencesWindow.setWindowTitle("User Preferences")
         self.preferencesWindow.setMinimumSize(500,500)
-
-
-
-    def showCutsheetLocationFileDialog(self):
-        self.cutsheetLocationFileDialog.exec()
-        self.cutsheetFolderpath = self.cutsheetLocationFileDialog.selectedFiles()[0]
-
-
     def connectSignals(self):
         self.signals.saveCellData.connect(self.saveCellData)
         self.quit.triggered.connect(self.closeEvent)
@@ -271,22 +261,21 @@ class mainProgram(QMainWindow):
             self.addLooseButton.setDisabled(True)
             self.addLooseButton.hide()
         
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,1)
-        self.mainWindowLayout.addWidget(self.cableDataWindowButton,8,1)
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,2)
+        self.mainWindowLayout.addWidget(self.cableDataWindowButton,11,2)
 
-        self.mainWindowLayout.addWidget(self.saveButton,13,1)
-        self.mainWindowLayout.addWidget(self.saveAsButton,14,1)
+        self.mainWindowLayout.addWidget(self.saveButton,13,2)
+        self.mainWindowLayout.addWidget(self.saveAsButton,14,2)
         self.mainWindowLayout.addWidget(self.hintsButton,14,0)
-        #self.mainWindowLayout.addWidget(self.scaleWidget,13,0)
+
         self.mainWindowLayout.addWidget(self.preferencesWindowButton,13,0)
 
-        self.mainWindowLayout.addWidget(self.showHideMenuButton,0,2,15,1)
+        self.mainWindowLayout.addWidget(self.showHideMenuButton,7,2,1,1)
 
         self.mainWindowLayout.addWidget(self.tableWidget,0,3,15,1)
 
         self.mainWindowWidget.setLayout(self.mainWindowLayout)
         self.setCentralWidget(self.mainWindowWidget)
-
     def scaleUI(self):
         buttonWidth = int(self.monitor[0].width*.1*self.scaleWidget.value()/100)
         self.newPanelDescription.setFixedWidth(buttonWidth)
@@ -303,60 +292,6 @@ class mainProgram(QMainWindow):
         self.saveAsButton.setFixedWidth(buttonWidth)
         self.saveButton.setFixedWidth(buttonWidth)
         self.addItemButton.setFixedWidth(buttonWidth)
-
-
-    def showPreferencesWindow(self):
-        self.preferencesWindow.exec()
-
-    def showHideMenu(self):
-        if self.hidingMenu == False:
-            self.addItemButton.hide()
-            self.saveButton.hide()
-            self.saveAsButton.hide()
-            self.deleteRowButton.hide()
-            self.addPanelButton.hide()
-            self.deletePanelButton.hide()
-            self.hintsButton.hide()
-            self.renamePanelButton.hide()
-            self.addLooseButton.hide()
-            self.revisionDataWindowButton.hide()
-            self.cableDataWindowButton.hide()
-            self.searchByKeywordButton.hide()
-            self.preferencesWindowButton.hide()
-            self.cutSheetLocationFileDialogButton.hide()
-            self.newPanelName.hide()
-            self.newPanelDescription.hide()
-            self.addItemSelect.hide()
-
-            #rest of buttons here
-            self.hidingMenu = True
-            self.showHideMenuButton.setText(">")
-            pass
-        else:
-            self.addItemButton.show()
-            self.saveButton.show()
-            self.saveAsButton.show()
-            self.deleteRowButton.show()
-            self.addPanelButton.show()
-            self.deletePanelButton.show()
-            self.hintsButton.show()
-            self.renamePanelButton.show()
-            self.addLooseButton.show()
-            self.revisionDataWindowButton.show()
-            self.cableDataWindowButton.show()
-            self.searchByKeywordButton.show()
-            self.preferencesWindowButton.show()
-            self.cutSheetLocationFileDialogButton.show()
-            self.newPanelName.show()
-            self.newPanelDescription.show()
-            self.addItemSelect.show()
-            #rest of buttons here
-            self.hidingMenu = False
-            self.showHideMenuButton.setText("<")
-            pass
-
-
-
     def selectMasterMatlistFile(self):
         if not self.masterMatListPath:
             fileDialog = QFileDialog()
@@ -369,6 +304,8 @@ class mainProgram(QMainWindow):
         self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
         for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
             self.addItemSelect.addItem(item)
+
+
 
 
     #MISC FUNCTIONS TO BE SORTED LATER
@@ -412,6 +349,59 @@ class mainProgram(QMainWindow):
             self.searchResults.exec()
     def showDescription(self):
         self.descriptionWidget.setText("Item " + self.searchResultsList.currentItem().text() + ":\n" + self.masterMatList[self.searchResultsList.currentItem().text()].replace('<br/>','\n'))
+    def showCutsheetLocationFileDialog(self):
+        self.cutsheetLocationFileDialog.setFileMode(QFileDialog.Directory)
+        self.cutsheetLocationFileDialog.exec()
+        self.cutsheetFolderpath = self.cutsheetLocationFileDialog.selectedFiles()[0]
+    def showPreferencesWindow(self):
+        self.preferencesWindow.exec()
+    def showHideMenu(self):
+        if self.hidingMenu == False:
+            self.addItemButton.hide()
+            #self.saveButton.hide()
+            #self.saveAsButton.hide()
+            self.deleteRowButton.hide()
+            self.addPanelButton.hide()
+            self.deletePanelButton.hide()
+            self.hintsButton.hide()
+            self.renamePanelButton.hide()
+            self.addLooseButton.hide()
+            #self.revisionDataWindowButton.hide()
+            #self.cableDataWindowButton.hide()
+            self.searchByKeywordButton.hide()
+            self.preferencesWindowButton.hide()
+            self.cutSheetLocationFileDialogButton.hide()
+            self.newPanelName.hide()
+            self.newPanelDescription.hide()
+            self.addItemSelect.hide()
+
+            #rest of buttons here
+            self.hidingMenu = True
+            self.showHideMenuButton.setText(">")
+            pass
+        else:
+            self.addItemButton.show()
+            #self.saveButton.show()
+            #self.saveAsButton.show()
+            self.deleteRowButton.show()
+            self.addPanelButton.show()
+            self.deletePanelButton.show()
+            self.hintsButton.show()
+            self.renamePanelButton.show()
+            self.addLooseButton.show()
+            #self.revisionDataWindowButton.show()
+            #self.cableDataWindowButton.show()
+            self.searchByKeywordButton.show()
+            self.preferencesWindowButton.show()
+            self.cutSheetLocationFileDialogButton.show()
+            self.newPanelName.show()
+            self.newPanelDescription.show()
+            self.addItemSelect.show()
+            #rest of buttons here
+            self.hidingMenu = False
+            self.showHideMenuButton.setText("<")
+            pass
+
 
 
     #GETTER FUNCTIONS
