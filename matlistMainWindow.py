@@ -734,6 +734,7 @@ class mainProgram(QMainWindow):
         cutsheetFolder = self.cutsheetLocationFileDialog.selectedFiles()[0]
         allCutsheetPaths = [cutsheet for cutsheet in os.listdir(cutsheetFolder) if os.path.splitext(cutsheet)[1]==".pdf"]
         projectCutsheetPaths = [cutsheet for cutsheet in allCutsheetPaths if cutsheet.split(" ")[0] in self.uniqueItemNumbers]
+        projectCutsheetPaths.sort(key=naturalSortKey)
         merger = PdfMerger()
         merger.append(self.pdfFileName)
         for pdf in projectCutsheetPaths:
@@ -742,7 +743,6 @@ class mainProgram(QMainWindow):
         merger.write(self.pdfFileName)
         merger.close()
 
-        #MERGE THE NO-CUTSHEET PDF FILE WITH THE ONLY CUTSHEETS PDF FILE HERE
         
 
         
