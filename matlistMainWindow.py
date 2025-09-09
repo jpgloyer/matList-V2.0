@@ -732,11 +732,11 @@ class mainProgram(QMainWindow):
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
     def combineCutsheets(self):
         cutsheetFolder = self.cutsheetLocationFileDialog.selectedFiles()[0]
-        cutsheetPaths = [cutsheet for cutsheet in os.listdir(cutsheetFolder) if os.path.splitext(cutsheet)[1]==".pdf"]
+        allCutsheetPaths = [cutsheet for cutsheet in os.listdir(cutsheetFolder) if os.path.splitext(cutsheet)[1]==".pdf"]
+        projectCutsheetPaths = [cutsheet for cutsheet in allCutsheetPaths if cutsheet.split(" ")[0] in self.uniqueItemNumbers]
         merger = PdfMerger()
         merger.append(self.pdfFileName)
-
-        for pdf in cutsheetPaths:
+        for pdf in projectCutsheetPaths:
             merger.append(cutsheetFolder+"/"+pdf)
 
         merger.write(self.pdfFileName)
