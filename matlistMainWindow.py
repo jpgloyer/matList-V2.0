@@ -11,6 +11,8 @@ from reportlab.platypus import Paragraph, Table, PageBreak, PageTemplate, BaseDo
 from reportlab.platypus.frames import Frame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
+from glob import glob
+from PyPDF2 import PdfMerger
 
 import pyodbc
 import pandas as pd
@@ -32,6 +34,7 @@ class mainProgram(QMainWindow):
     def __init__(self):
         super(mainProgram, self).__init__()
         self.declareVariables()
+        self.buildPreferencesWindow()
         self.connectSignals()
         self.connectShortcuts()
         self.startupMessage()
@@ -68,6 +71,7 @@ class mainProgram(QMainWindow):
         self.masterMatListPath: str = ""
         self.matListFileName: str = ''
         self.pdfFileName: str = ''
+        self.cutsheetFolderpath: str = ''
 
         self.quit = QAction("Quit",self)
 
@@ -83,11 +87,17 @@ class mainProgram(QMainWindow):
         self.revisionDataWindowButton = QPushButton("Revisions",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
         self.searchByKeywordButton = QPushButton("Search by Keyword",clicked=self.searchByKeyword)
-        self.preferencesWindowButton = QPushButton("Preferences",clicked=self.preferencesWindow)
-        self.showHideMenuButton = QPushButton("Hide Menu",clicked=self.showHideMenu)
+        self.preferencesWindowButton = QPushButton("Preferences",clicked=self.showPreferencesWindow)
+        self.showHideMenuButton = QPushButton("<",clicked=self.showHideMenu)
+        self.cutSheetLocationFileDialogButton = QPushButton("Select Cutsheet PDF Directory",clicked=self.showCutsheetLocationFileDialog)
+        
+        self.includeCutsheetsCheckBox = QCheckBox()
 
         self.newPanelName = QLineEdit()
         self.newPanelDescription = QLineEdit()
+
+        self.cutsheetLocationFileDialog = QFileDialog()
+        self.cutsheetLocationFileDialog.setFileMode(QFileDialog.Directory)
 
         self.addItemSelect = QComboBox()
 
@@ -115,10 +125,12 @@ class mainProgram(QMainWindow):
         self.cellNoteShortcut = QShortcut(QtGui.QKeySequence(self.tr('N')),self)
 
         self.scaleWidget = QSpinBox()
-        self.scaleWidget.setValue(100)
-        self.scaleWidget.setMinimum(10)#10% size
-        self.scaleWidget.setMaximum(300)#300% size
-        self.scaleWidget.valueChanged.connect(self.scaleUI)
+        
+
+        self.preferencesWindow = QDialog()
+        self.preferencesWindowLayout = QGridLayout()
+        
+
 
 
 
@@ -127,6 +139,28 @@ class mainProgram(QMainWindow):
         #self.revisionDataWindow1 = revisionWindow()
         #self.cableDataWindow = cableWindow()
         #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
+
+    def buildPreferencesWindow(self):
+        self.scaleWidget.setValue(100)
+        self.scaleWidget.setMinimum(10)#10% size
+        self.scaleWidget.setMaximum(300)#300% size
+        self.scaleWidget.valueChanged.connect(self.scaleUI)
+        self.preferencesWindowLayout.addWidget(QLabel("UI Scale"),0,0)
+        self.preferencesWindowLayout.addWidget(self.scaleWidget,0,1)
+        self.preferencesWindowLayout.addWidget(QLabel("Include Cutsheets"),1,0)
+        self.preferencesWindowLayout.addWidget(self.includeCutsheetsCheckBox,1,1)
+        self.preferencesWindowLayout.addWidget(QLabel("Cutsheet Location"),2,0)
+        self.preferencesWindowLayout.addWidget(self.cutSheetLocationFileDialogButton,2,1)
+        self.preferencesWindow.setLayout(self.preferencesWindowLayout)
+        self.preferencesWindow.setWindowTitle("User Preferences")
+        self.preferencesWindow.setMinimumSize(500,500)
+
+
+
+    def showCutsheetLocationFileDialog(self):
+        self.cutsheetLocationFileDialog.exec()
+
+
     def connectSignals(self):
         self.signals.saveCellData.connect(self.saveCellData)
         self.quit.triggered.connect(self.closeEvent)
@@ -268,28 +302,54 @@ class mainProgram(QMainWindow):
         self.addItemButton.setFixedWidth(buttonWidth)
 
 
-    def preferencesWindow(self):
-        preferencesWindow = QDialog()
-        preferencesWindow.setWindowTitle("User Preferences")
-        preferencesWindow.setMinimumSize(500,500)
-        preferencesWindowLayout = QGridLayout()
-        preferencesWindowLayout.addWidget(QLabel("UI Scale"),0,0)
-        preferencesWindowLayout.addWidget(self.scaleWidget,0,1)
-        preferencesWindow.setLayout(preferencesWindowLayout)
-        preferencesWindow.exec()
+    def showPreferencesWindow(self):
+        self.preferencesWindow.exec()
 
     def showHideMenu(self):
         if self.hidingMenu == False:
+            self.addItemButton.hide()
+            self.saveButton.hide()
             self.saveAsButton.hide()
+            self.deleteRowButton.hide()
+            self.addPanelButton.hide()
+            self.deletePanelButton.hide()
+            self.hintsButton.hide()
+            self.renamePanelButton.hide()
+            self.addLooseButton.hide()
+            self.revisionDataWindowButton.hide()
+            self.cableDataWindowButton.hide()
+            self.searchByKeywordButton.hide()
+            self.preferencesWindowButton.hide()
+            self.cutSheetLocationFileDialogButton.hide()
+            self.newPanelName.hide()
+            self.newPanelDescription.hide()
+            self.addItemSelect.hide()
+
             #rest of buttons here
             self.hidingMenu = True
-            self.showHideMenuButton.setText("Show Menu")
+            self.showHideMenuButton.setText(">")
             pass
         else:
+            self.addItemButton.show()
+            self.saveButton.show()
             self.saveAsButton.show()
+            self.deleteRowButton.show()
+            self.addPanelButton.show()
+            self.deletePanelButton.show()
+            self.hintsButton.show()
+            self.renamePanelButton.show()
+            self.addLooseButton.show()
+            self.revisionDataWindowButton.show()
+            self.cableDataWindowButton.show()
+            self.searchByKeywordButton.show()
+            self.preferencesWindowButton.show()
+            self.cutSheetLocationFileDialogButton.show()
+            self.newPanelName.hide()
+            self.newPanelDescription.hide()
+            self.addItemSelect.hide()
             #rest of buttons here
             self.hidingMenu = False
-            self.showHideMenuButton.setText("Hide Menu")
+            self.showHideMenuButton.setText("<")
             pass
 
 
@@ -415,6 +475,8 @@ class mainProgram(QMainWindow):
             self.newFile = False
         self.saveJSONFile()
         self.makePDF()
+        if self.includeCutsheetsCheckBox.isChecked() == True:
+            self.combineCutsheets()
         self.saved = True
         message = QMessageBox()
         message.setText(f'PDF and JSON saved in {os.path.split(self.matListFileName)[0]}')
@@ -668,7 +730,14 @@ class mainProgram(QMainWindow):
     def drawRevisionNumber(self, canvas, doc):
         w, h = self.revisionNumber.wrap(doc.width, doc.bottomMargin)
         self.revisionNumber.drawOn(canvas, doc.leftMargin, h)
-
+    def combineCutsheets(self):
+        rootDir = self.cutsheetLocationFileDialog.selectedFiles()[0]
+        outputFileName = self.pdfFileName.rstrip(".pdf")+"(with cutsheets).pdf"
+        merger = PdfMerger()
+        allpdfs = [a for a in glob("*.pdf", root_dir=rootDir)]
+        [merger.append(rootDir+"\\"+pdf) for pdf in allpdfs]
+        with open(outputFileName, "wb") as new_file:
+            merger.write(new_file)
 
         
 #SIGNALS
