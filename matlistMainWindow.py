@@ -259,20 +259,19 @@ class mainProgram(QMainWindow):
         self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
         if self.loosePanelPresent == True:
             self.addLooseButton.setDisabled(True)
-            self.addLooseButton.hide()
         
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,12,2)
-        self.mainWindowLayout.addWidget(self.cableDataWindowButton,11,2)
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,8,2)
+        self.mainWindowLayout.addWidget(self.cableDataWindowButton,7,2)
 
-        self.mainWindowLayout.addWidget(self.saveButton,13,2)
-        self.mainWindowLayout.addWidget(self.saveAsButton,14,2)
-        self.mainWindowLayout.addWidget(self.hintsButton,14,0)
+        self.mainWindowLayout.addWidget(self.saveButton,9,2)
+        self.mainWindowLayout.addWidget(self.saveAsButton,10,2)
+        self.mainWindowLayout.addWidget(self.hintsButton,10,0)
 
-        self.mainWindowLayout.addWidget(self.preferencesWindowButton,13,0)
+        self.mainWindowLayout.addWidget(self.preferencesWindowButton,9,0)
 
-        self.mainWindowLayout.addWidget(self.showHideMenuButton,7,2,1,1)
+        self.mainWindowLayout.addWidget(self.showHideMenuButton,6,2,1,1)
 
-        self.mainWindowLayout.addWidget(self.tableWidget,0,3,15,1)
+        self.mainWindowLayout.addWidget(self.tableWidget,0,3,11,1)
 
         self.mainWindowWidget.setLayout(self.mainWindowLayout)
         self.setCentralWidget(self.mainWindowWidget)
@@ -542,7 +541,7 @@ class mainProgram(QMainWindow):
             self.saved = False
             self.loosePanelPresent = True
             self.addLooseButton.setDisabled(True)
-            self.addLooseButton.hide()
+            #self.addLooseButton.hide()
 
     #OTHER WINDOWS
     def showRevisionData(self):
@@ -678,7 +677,8 @@ class mainProgram(QMainWindow):
             cableTableData[cableindex+3][9] = Paragraph(cable['to']['relayType'],style=styleCustomCenterJustified)
             cableTableData[cableindex+3][10] = Paragraph(cable['to']['port'],style=styleCustomCenterJustified)
 
-        cableTable = Table(cableTableData, colWidths=[50,60,50,70,70,70,70,70,70,70,70], rowHeights=[25 for row in cableTableData], repeatRows=3, style=[
+        colWidth = (self.pageWidth*inch-100)/11
+        cableTable = Table(cableTableData, colWidths=[colWidth for i in range(11)], rowHeights=[25 for row in cableTableData], repeatRows=3, style=[
             ('GRID',(0,0),(-1,-1),0.5,colors.black),
             ('SPAN', (0,0), (-1, 0)),#Cable table header
             ('SPAN', (3,1), (6, 1)),#From header
