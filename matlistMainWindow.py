@@ -17,11 +17,13 @@ from PyPDF2 import PdfMerger
 import pyodbc
 import pandas as pd
 
-import traceback
+
 from revisionWindow import revisionWindow
 from cableWindow import cableWindow
 from customWidgets import customTableWidgetItem
 from signals import signalClass
+from dialogs import deleteItem
+
 from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, NumberedPageCanvas17x11
 
 
@@ -78,9 +80,11 @@ class mainProgram(QMainWindow):
         self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
         self.saveButton = QPushButton('Save',clicked=self.save)
         self.saveAsButton = QPushButton('Save As',clicked=self.saveAs)
-        self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
+        #self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
+        #self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.delete)
         self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
-        self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
+        #self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
+        self.deleteButton = QPushButton('Delete', clicked=self.delete)
         self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
         self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
@@ -248,30 +252,30 @@ class mainProgram(QMainWindow):
             
         self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
         self.mainWindowLayout.addWidget(self.addItemButton,1,0)
-        self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
+        #self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
         self.mainWindowLayout.addWidget(self.searchByKeywordButton,2,0)
 
         self.mainWindowLayout.addWidget(self.newPanelName,0,1)
         self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
         self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
         self.mainWindowLayout.addWidget(self.renamePanelButton,5,1)
-        self.mainWindowLayout.addWidget(self.deletePanelButton,4,1)
+        self.mainWindowLayout.addWidget(self.deleteButton,4,1)
         self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
         if self.loosePanelPresent == True:
             self.addLooseButton.setDisabled(True)
         
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,8,2)
-        self.mainWindowLayout.addWidget(self.cableDataWindowButton,7,2)
+        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,2,2)
+        self.mainWindowLayout.addWidget(self.cableDataWindowButton,1,2)
 
-        self.mainWindowLayout.addWidget(self.saveButton,9,2)
-        self.mainWindowLayout.addWidget(self.saveAsButton,10,2)
+        self.mainWindowLayout.addWidget(self.saveButton,3,2)
+        self.mainWindowLayout.addWidget(self.saveAsButton,4,2)
         self.mainWindowLayout.addWidget(self.hintsButton,10,0)
 
         self.mainWindowLayout.addWidget(self.preferencesWindowButton,9,0)
 
-        self.mainWindowLayout.addWidget(self.showHideMenuButton,6,2,1,1)
+        self.mainWindowLayout.addWidget(self.showHideMenuButton,0,2,1,1)
 
-        self.mainWindowLayout.addWidget(self.tableWidget,0,3,11,1)
+        self.mainWindowLayout.addWidget(self.tableWidget,0,3,20,1)
 
         self.mainWindowWidget.setLayout(self.mainWindowLayout)
         self.setCentralWidget(self.mainWindowWidget)
@@ -285,9 +289,9 @@ class mainProgram(QMainWindow):
         self.addLooseButton.setFixedWidth(buttonWidth)
         self.renamePanelButton.setFixedWidth(buttonWidth)
         self.hintsButton.setFixedWidth(buttonWidth)
-        self.deletePanelButton.setFixedWidth(buttonWidth)
+        self.deleteButton.setFixedWidth(buttonWidth)
         self.addPanelButton.setFixedWidth(buttonWidth)
-        self.deleteRowButton.setFixedWidth(buttonWidth)
+        #self.deleteRowButton.setFixedWidth(buttonWidth)
         self.saveAsButton.setFixedWidth(buttonWidth)
         self.saveButton.setFixedWidth(buttonWidth)
         self.addItemButton.setFixedWidth(buttonWidth)
@@ -359,9 +363,9 @@ class mainProgram(QMainWindow):
             self.addItemButton.hide()
             #self.saveButton.hide()
             #self.saveAsButton.hide()
-            self.deleteRowButton.hide()
+            #self.deleteRowButton.hide()
             self.addPanelButton.hide()
-            self.deletePanelButton.hide()
+            self.deleteButton.hide()
             self.hintsButton.hide()
             self.renamePanelButton.hide()
             self.addLooseButton.hide()
@@ -382,9 +386,9 @@ class mainProgram(QMainWindow):
             self.addItemButton.show()
             #self.saveButton.show()
             #self.saveAsButton.show()
-            self.deleteRowButton.show()
+            #self.deleteRowButton.show()
             self.addPanelButton.show()
-            self.deletePanelButton.show()
+            self.deleteButton.show()
             self.hintsButton.show()
             self.renamePanelButton.show()
             self.addLooseButton.show()
@@ -490,16 +494,6 @@ class mainProgram(QMainWindow):
         self.saved = False
     def updateAddRowButton(self):
         self.addItemButton.setText('Add Item: '+self.addItemSelect.currentText())
-    def deleteItem(self):
-        if len(self.uniqueItemNumbers) > 0:
-            items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
-            self.uniqueItemNumbers.remove(items[self.currentlySelectedCell[0]])
-            self.tableWidget.removeRow(self.currentlySelectedCell[0])
-        if len(self.uniqueItemNumbers) > 0:
-            self.deleteRowButton.setText(f'Delete Item: {items[self.currentlySelectedCell[0]]}')
-        else:
-            self.deleteRowButton.setText(f'')
-        self.saved = False
     def addPanel(self):        
         self.panelNames.append(self.newPanelName.text())
         self.panelDescriptions.append(self.newPanelDescription.text())
@@ -513,14 +507,28 @@ class mainProgram(QMainWindow):
         self.newPanelDescription.setText('')
         self.refreshCells()
         self.saved = False
-    def deletePanel(self):
-        if self.panelNames[self.currentlySelectedCell[1]] == 'Loose and Not Mounted':
-            self.loosePanelPresent = False
-            self.addLooseButton.setDisabled(False)
-            self.addLooseButton.show()
-        self.panelNames.remove(self.panelNames[self.currentlySelectedCell[1]])
-        self.tableWidget.removeColumn(self.currentlySelectedCell[1])
-        self.saved = False
+    def delete(self):
+        self.deleteDialog = deleteItem(self.uniqueItemNumbers,self.panelNames)
+        self.deleteDialog.exec()
+        deletedItemType = self.deleteDialog.deletedItem[0]
+        deletedItem = self.deleteDialog.deletedItem[1]
+        if deletedItemType == 'Item':
+            if len(self.uniqueItemNumbers) > 0:
+                self.tableWidget.removeRow(self.uniqueItemNumbers.index(deletedItem))
+                self.uniqueItemNumbers.remove(deletedItem)
+            self.saved = False
+        elif deletedItemType == 'Panel':
+            if deletedItem == 'Loose and Not Mounted':
+                self.loosePanelPresent = False
+                self.addLooseButton.setDisabled(False)
+                self.addLooseButton.show()
+            self.tableWidget.removeColumn(self.panelNames.index(deletedItem))
+            self.panelNames.remove(deletedItem)
+            self.saved = False        
+
+
+
+
     def renamePanel(self):
         newPanelName, ok = QInputDialog.getText(None, "Rename Panel:", "Rename Panel:")
         newPanelDescription, ok2 = QInputDialog.getText(None, "New Panel Description:", "Panel Description:")
@@ -592,8 +600,8 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         if self.tableWidget.rowCount()>0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
-            self.deleteRowButton.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
-        self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
+            #self.deleteRowButton.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
+        #self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
         self.renamePanelButton.setText('Rename Panel: '+self.panelNames[self.currentlySelectedCell[1]])
 
 
