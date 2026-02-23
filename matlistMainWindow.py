@@ -22,7 +22,7 @@ from revisionWindow import revisionWindow
 from cableWindow import cableWindow
 from customWidgets import customTableWidgetItem
 from signals import signalClass
-from dialogs import deleteItem
+from dialogs import deleteItem, addItemDialog, addPanelDialog, renamePanelDialog
 
 from pdfCanvases import NumberedPageCanvas8x11, NumberedPageCanvas11x8, NumberedPageCanvas17x11
 
@@ -39,16 +39,12 @@ class mainProgram(QMainWindow):
         self.buildPreferencesWindow()
         self.connectSignals()
         self.connectShortcuts()
-        self.startupMessage()
-        if self.newFile == False:
-            self.loadExistingFile()
-        else:
-            self.buildNewMatlist()
+        self.buildNewMatlist()
         self.buildMainWindow()
         self.buildUI()
         self.scaleUI()
-        self.selectMasterMatlistFile()
-        self.buildMasterMatList()
+        if self.masterMatListPath:
+            self.buildMasterMatList()
         self.saved = True
 
     #INIT FUNCTIONS
@@ -59,7 +55,6 @@ class mainProgram(QMainWindow):
 
         self.saved: bool = False
         self.loosePanelPresent: bool = False
-        self.newFile: bool = True
         self.hidingMenu: bool = False
 
         self.currentlySelectedCell:list = [0,0]
@@ -75,45 +70,40 @@ class mainProgram(QMainWindow):
         self.pdfFileName: str = ''
         self.cutsheetFolderpath: str = ''
 
+        # Menu Bar Actions
         self.quit = QAction("Quit",self)
+        self.openAction = QAction("Open",self,triggered=self.openFile,shortcut=QtGui.QKeySequence.Open)
+        self.saveAction = QAction("Save",self,triggered=self.save,shortcut=QtGui.QKeySequence.Save)
+        self.saveAsAction = QAction("Save As",self,triggered=self.saveAs,shortcut=QtGui.QKeySequence.SaveAs)
+        self.selectDatabaseAction = QAction("Select Database",self,triggered=self.selectAndLoadDatabase)
+        self.preferencesAction = QAction("Preferences",self,triggered=self.showPreferencesWindow)
+        self.helpAction = QAction("Help & Shortcuts",self,triggered=self.displayHints,shortcut="H")
 
-        self.addItemButton = QPushButton('Add Item: 0',clicked=self.addItem)
+        # Toolbar Buttons
+        self.addItemButton = QPushButton('Add Item',clicked=self.addItem)
         self.saveButton = QPushButton('Save',clicked=self.save)
         self.saveAsButton = QPushButton('Save As',clicked=self.saveAs)
-        #self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.deleteItem)
-        #self.deleteRowButton = QPushButton(f'Delete Item: ',clicked=self.delete)
-        self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
-        #self.deletePanelButton = QPushButton('Delete Panel', clicked=self.deletePanel)
         self.deleteButton = QPushButton('Delete', clicked=self.delete)
-        self.hintsButton = QPushButton('Hints',clicked=self.displayHints)
-        self.renamePanelButton = QPushButton('Rename Panel',clicked=self.renamePanel)
+        
+        # Sidebar Buttons - Panel Management
+        self.addPanelButton = QPushButton('Add Panel',clicked=self.addPanel)
         self.addLooseButton = QPushButton('Add "Loose and Not Mounted"',clicked=self.addLoose)
+        
+        # Sidebar Buttons - Data Windows
         self.revisionDataWindowButton = QPushButton("Revisions",clicked=self.showRevisionData)
         self.cableDataWindowButton = QPushButton("Show Cable Data",clicked=self.showCableData)
-        self.searchByKeywordButton = QPushButton("Search by Keyword",clicked=self.searchByKeyword)
-        self.preferencesWindowButton = QPushButton("Preferences",clicked=self.showPreferencesWindow)
-        self.showHideMenuButton = QPushButton("<",clicked=self.showHideMenu)
+        
+        # Sidebar Buttons - Settings
         self.cutSheetLocationFileDialogButton = QPushButton("Select Cutsheet PDF Directory",clicked=self.showCutsheetLocationFileDialog)
         
         self.includeCutsheetsCheckBox = QCheckBox()
 
-        self.newPanelName = QLineEdit()
-        self.newPanelDescription = QLineEdit()
-
         self.cutsheetLocationFileDialog = QFileDialog()
 
-        self.addItemSelect = QComboBox()
-
-        self.dockLayout = QFormLayout()
-
-        self.dockMenu = QWidget()
         self.mainWindowWidget = QWidget()
-
-        self.dock = QDockWidget('Menu')
 
         self.tableWidget = QTableWidget()
 
-        self.mainWindowLayout = QGridLayout()
         self.searchResultsLayout = QGridLayout()
 
         self.searchResults = QDialog()
@@ -133,15 +123,6 @@ class mainProgram(QMainWindow):
         self.preferencesWindow = QDialog()
         self.preferencesWindowLayout = QGridLayout()
         
-
-
-
-
-
-
-        #self.revisionDataWindow1 = revisionWindow()
-        #self.cableDataWindow = cableWindow()
-        #self.selectMasterMatlistButton = QPushButton("Select Master Material List",clicked=self.selectMasterMatlistFile)
     def buildPreferencesWindow(self):
         self.scaleWidget.setValue(100)
         self.scaleWidget.setMinimum(10)#10% size
@@ -164,55 +145,6 @@ class mainProgram(QMainWindow):
         #self.refreshDockShortcut.activated.connect(self.buildDock)
         self.helpShortcut.activated.connect(self.displayHints)
         self.cellNoteShortcut.activated.connect(self.addCellNote)
-    def startupMessage(self):
-        newFileDialog = QDialog()
-        newFileDialogLayout = QGridLayout()
-        newFileDialogMessage = QLabel("Create New Material List?")
-        newFileRadioButtonYes = QRadioButton()
-        newFileRadioButtonNo = QRadioButton()
-        newFileDialogAccept = QPushButton('Enter')
-
-        newFileDialog.setWindowTitle('New Material List?')
-        newFileDialog.setMinimumSize(400,50)
-        newFileRadioButtonYes.setText('New Material List')
-        newFileRadioButtonNo.setText('Select Existing Material List')
-        newFileDialogAccept.clicked.connect(newFileDialog.close)
-
-        newFileDialogLayout.addWidget(newFileDialogMessage,0,0)
-        newFileDialogLayout.addWidget(newFileRadioButtonYes,1,0)
-        newFileDialogLayout.addWidget(newFileRadioButtonNo,1,1)
-        newFileDialogLayout.addWidget(newFileDialogAccept)
-
-        newFileDialog.setLayout(newFileDialogLayout)
-        newFileDialog.exec()
-
-        if newFileRadioButtonYes.isChecked():
-            self.newFile = True
-        if newFileRadioButtonNo.isChecked():
-            self.newFile = False
-        if not (newFileRadioButtonYes.isChecked() or newFileRadioButtonNo.isChecked()):
-            sys.exit()
-    def loadExistingFile(self):
-        file = QFileDialog()
-        file.setNameFilters(["Text files (*.csv *.json)"])
-        file.exec()
-        try:
-            self.matListFileName = file.selectedFiles()[0]
-            self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-            with open(self.matListFileName) as jsonFile:
-                self.data = json.load(jsonFile)
-            self.panelNames = [header for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"]]
-            self.panelDescriptions = [self.data[header]["description"] for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"] and "description" in self.data[header]]
-            self.loosePanelPresent = 'Loose and Not Mounted' in self.data
-            self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
-            self.includeCutsheetsCheckBox.setChecked(self.data["miscellaneousInfo"]["includeCatalogCuts"])
-            self.cutsheetFolderpath = self.data["miscellaneousInfo"]["catalogCutsheetFolder"]
-            self.uniqueItemNumbers = [item for item in self.data[list(self.data.keys())[0]] if item != 'description']
-            self.uniqueItemNumbers.sort(key=naturalSortKey)
-        except:
-            message = QMessageBox(text='Error Loading File\nNew File Being Created')
-            message.exec()
-            self.newFile = True
     def buildNewMatlist(self):
         self.matListFileName = 'newFile.json'
         self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
@@ -238,77 +170,135 @@ class mainProgram(QMainWindow):
         self.tableWidget.horizontalScrollBar().setSingleStep(20)
         self.tableWidget.itemSelectionChanged.connect(self.tableItemSelectionChanged)
         self.tableWidget.cellDoubleClicked.connect(self.showItemDescription)
+        # Connect double-click on column header to rename panel
+        self.tableWidget.horizontalHeader().sectionDoubleClicked.connect(self.renamePanelFromHeader)
         for rowIndex, row in enumerate(self.uniqueItemNumbers):
             for columnIndex, column in enumerate(self.panelNames):
                 self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
         self.refreshCells()
+
+        # Create Menu Bar
+        self.createMenuBar()
         
-        self.addItemSelect.currentTextChanged.connect(self.updateAddRowButton)
-        for item in self.masterMatList.keys():
-            self.addItemSelect.addItem(item)
-
-        self.newPanelName.setPlaceholderText('Panel Name')
-        self.newPanelDescription.setPlaceholderText('Panel Description')
-            
-        self.mainWindowLayout.addWidget(self.addItemSelect,0,0)
-        self.mainWindowLayout.addWidget(self.addItemButton,1,0)
-        #self.mainWindowLayout.addWidget(self.deleteRowButton,4,0)
-        self.mainWindowLayout.addWidget(self.searchByKeywordButton,2,0)
-
-        self.mainWindowLayout.addWidget(self.newPanelName,0,1)
-        self.mainWindowLayout.addWidget(self.newPanelDescription,1,1)
-        self.mainWindowLayout.addWidget(self.addPanelButton,2,1)
-        self.mainWindowLayout.addWidget(self.renamePanelButton,5,1)
-        self.mainWindowLayout.addWidget(self.deleteButton,4,1)
-        self.mainWindowLayout.addWidget(self.addLooseButton,3,1)
-        if self.loosePanelPresent == True:
-            self.addLooseButton.setDisabled(True)
+        # Create organized sidebar layout
+        sidebarWidget = QWidget()
+        sidebarLayout = QVBoxLayout()
         
-        self.mainWindowLayout.addWidget(self.revisionDataWindowButton,2,2)
-        self.mainWindowLayout.addWidget(self.cableDataWindowButton,1,2)
-
-        self.mainWindowLayout.addWidget(self.saveButton,3,2)
-        self.mainWindowLayout.addWidget(self.saveAsButton,4,2)
-        self.mainWindowLayout.addWidget(self.hintsButton,10,0)
-
-        self.mainWindowLayout.addWidget(self.preferencesWindowButton,9,0)
-
-        self.mainWindowLayout.addWidget(self.showHideMenuButton,0,2,1,1)
-
-        self.mainWindowLayout.addWidget(self.tableWidget,0,3,20,1)
-
-        self.mainWindowWidget.setLayout(self.mainWindowLayout)
+        # Item Management Section
+        itemGroupBox = QGroupBox("Item Management")
+        itemLayout = QVBoxLayout()
+        itemLayout.addWidget(self.addItemButton)
+        itemGroupBox.setLayout(itemLayout)
+        sidebarLayout.addWidget(itemGroupBox)
+        
+        # Panel Management Section
+        panelGroupBox = QGroupBox("Panel Management")
+        panelLayout = QVBoxLayout()
+        panelLayout.addWidget(self.addPanelButton)
+        panelLayout.addWidget(self.addLooseButton)
+        panelGroupBox.setLayout(panelLayout)
+        sidebarLayout.addWidget(panelGroupBox)
+        
+        # Data Management Section
+        dataGroupBox = QGroupBox("Data Management")
+        dataLayout = QVBoxLayout()
+        dataLayout.addWidget(self.revisionDataWindowButton)
+        dataLayout.addWidget(self.cableDataWindowButton)
+        dataGroupBox.setLayout(dataLayout)
+        sidebarLayout.addWidget(dataGroupBox)
+        
+        # Actions Section
+        actionsGroupBox = QGroupBox("Actions")
+        actionsLayout = QVBoxLayout()
+        actionsLayout.addWidget(self.deleteButton)
+        actionsGroupBox.setLayout(actionsLayout)
+        sidebarLayout.addWidget(actionsGroupBox)
+        
+        sidebarLayout.addStretch()
+        sidebarWidget.setLayout(sidebarLayout)
+        
+        # Main layout with table and sidebar
+        mainLayout = QHBoxLayout()
+        mainLayout.addWidget(sidebarWidget, 1)
+        mainLayout.addWidget(self.tableWidget, 3)
+        
+        self.mainWindowWidget.setLayout(mainLayout)
         self.setCentralWidget(self.mainWindowWidget)
     def scaleUI(self):
         buttonWidth = int(self.monitor[0].width*.1*self.scaleWidget.value()/100)
-        self.newPanelDescription.setFixedWidth(buttonWidth)
-        self.newPanelName.setFixedWidth(buttonWidth)
-        self.searchByKeywordButton.setFixedWidth(buttonWidth)
         self.cableDataWindowButton.setFixedWidth(buttonWidth)
         self.revisionDataWindowButton.setFixedWidth(buttonWidth)
         self.addLooseButton.setFixedWidth(buttonWidth)
-        self.renamePanelButton.setFixedWidth(buttonWidth)
-        self.hintsButton.setFixedWidth(buttonWidth)
         self.deleteButton.setFixedWidth(buttonWidth)
         self.addPanelButton.setFixedWidth(buttonWidth)
-        #self.deleteRowButton.setFixedWidth(buttonWidth)
         self.saveAsButton.setFixedWidth(buttonWidth)
         self.saveButton.setFixedWidth(buttonWidth)
         self.addItemButton.setFixedWidth(buttonWidth)
-    def selectMasterMatlistFile(self):
-        if not self.masterMatListPath:
-            fileDialog = QFileDialog()
-            fileDialog.setWindowTitle("Select Master Material List Database")
-            fileDialog.setNameFilters(["Access Database files (*.accdb)"])
-            fileDialog.exec()
-            self.masterMatListPath = fileDialog.selectedFiles()[0]
     def buildMasterMatList(self):
         self.masterMatList = self.queryDatabase("SELECT [ItemNo], [Desc] FROM MaterialDescriptionforPython ORDER BY ItemNo",self.masterMatListPath)
         self.masterMatList = {item[0].lstrip(): item[1] for item in self.masterMatList}
-        for item in sorted(self.masterMatList.keys(), key=naturalSortKey):
-            self.addItemSelect.addItem(item)
 
+    def openFile(self):
+        """Open an existing material list file"""
+        file = QFileDialog()
+        file.setNameFilters(["JSON files (*.json)"])
+        if file.exec():
+            try:
+                self.matListFileName = file.selectedFiles()[0]
+                self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
+                with open(self.matListFileName) as jsonFile:
+                    self.data = json.load(jsonFile)
+                self.panelNames = [header for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"]]
+                self.panelDescriptions = [self.data[header]["description"] for header in self.data if header not in ["revisions","cables", "miscellaneousInfo"] and "description" in self.data[header]]
+                self.loosePanelPresent = 'Loose and Not Mounted' in self.data
+                self.masterMatListPath = self.data["miscellaneousInfo"]["masterMatListPath"]
+                self.includeCutsheetsCheckBox.setChecked(self.data["miscellaneousInfo"]["includeCatalogCuts"])
+                self.cutsheetFolderpath = self.data["miscellaneousInfo"]["catalogCutsheetFolder"]
+                self.uniqueItemNumbers = [item for item in self.data[list(self.data.keys())[0]] if item != 'description']
+                self.uniqueItemNumbers.sort(key=naturalSortKey)
+                
+                # Rebuild UI with loaded data
+                self.rebuildUIWithData()
+                filename = os.path.basename(self.matListFileName).split('.')[0]
+                self.setWindowTitle(f'{filename} Contract List')
+                
+                if self.masterMatListPath and not self.masterMatList:
+                    self.buildMasterMatList()
+                self.saved = True
+            except Exception as e:
+                message = QMessageBox(text=f'Error Loading File: {str(e)}')
+                message.exec()
 
+    def selectAndLoadDatabase(self):
+        """Allow user to select and load the master material database"""
+        fileDialog = QFileDialog()
+        fileDialog.setWindowTitle("Select Master Material List Database")
+        fileDialog.setNameFilters(["Access Database files (*.accdb)"])
+        if fileDialog.exec():
+            self.masterMatListPath = fileDialog.selectedFiles()[0]
+            try:
+                self.buildMasterMatList()
+                QMessageBox.information(self, "Success", "Database loaded successfully!")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to load database: {str(e)}")
+
+    def rebuildUIWithData(self):
+        """Rebuild the UI with new data after opening a file"""
+        self.tableWidget.setColumnCount(len(self.panelNames))
+        self.tableWidget.setRowCount(len(self.uniqueItemNumbers))
+        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
+        self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
+        
+        # Clear existing cells
+        for row in range(self.tableWidget.rowCount()):
+            for col in range(self.tableWidget.columnCount()):
+                self.tableWidget.removeCellWidget(row, col)
+        
+        # Populate with new data
+        for rowIndex, row in enumerate(self.uniqueItemNumbers):
+            for columnIndex, column in enumerate(self.panelNames):
+                self.tableWidget.setCellWidget(rowIndex,columnIndex,customTableWidgetItem(self.signals, self.tableWidget, count=int(self.data[column][row]['count']) if self.data[column][row]['count'] != '1 Lot' else '1 Lot',deviceNames=self.data[column][row]['names'],coordinates=(rowIndex,columnIndex), note=self.data[column][row]['note']))
+        self.refreshCells()
 
 
     #MISC FUNCTIONS TO BE SORTED LATER
@@ -358,54 +348,28 @@ class mainProgram(QMainWindow):
         self.cutsheetFolderpath = self.cutsheetLocationFileDialog.selectedFiles()[0]
     def showPreferencesWindow(self):
         self.preferencesWindow.exec()
-    def showHideMenu(self):
-        if self.hidingMenu == False:
-            self.addItemButton.hide()
-            #self.saveButton.hide()
-            #self.saveAsButton.hide()
-            #self.deleteRowButton.hide()
-            self.addPanelButton.hide()
-            self.deleteButton.hide()
-            self.hintsButton.hide()
-            self.renamePanelButton.hide()
-            self.addLooseButton.hide()
-            #self.revisionDataWindowButton.hide()
-            #self.cableDataWindowButton.hide()
-            self.searchByKeywordButton.hide()
-            self.preferencesWindowButton.hide()
-            self.cutSheetLocationFileDialogButton.hide()
-            self.newPanelName.hide()
-            self.newPanelDescription.hide()
-            self.addItemSelect.hide()
-
-            #rest of buttons here
-            self.hidingMenu = True
-            self.showHideMenuButton.setText(">")
-            pass
-        else:
-            self.addItemButton.show()
-            #self.saveButton.show()
-            #self.saveAsButton.show()
-            #self.deleteRowButton.show()
-            self.addPanelButton.show()
-            self.deleteButton.show()
-            self.hintsButton.show()
-            self.renamePanelButton.show()
-            self.addLooseButton.show()
-            #self.revisionDataWindowButton.show()
-            #self.cableDataWindowButton.show()
-            self.searchByKeywordButton.show()
-            self.preferencesWindowButton.show()
-            self.cutSheetLocationFileDialogButton.show()
-            self.newPanelName.show()
-            self.newPanelDescription.show()
-            self.addItemSelect.show()
-            #rest of buttons here
-            self.hidingMenu = False
-            self.showHideMenuButton.setText("<")
-            pass
-
-
+    
+    def createMenuBar(self):
+        """Create the application menu bar with File, Edit, and Help menus"""
+        menuBar = self.menuBar()
+        
+        # File Menu
+        fileMenu = menuBar.addMenu("File")
+        fileMenu.addAction(self.openAction)
+        fileMenu.addAction(self.saveAction)
+        fileMenu.addAction(self.saveAsAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(self.quit)
+        
+        # Tools Menu
+        toolsMenu = menuBar.addMenu("Tools")
+        toolsMenu.addAction(self.selectDatabaseAction)
+        toolsMenu.addSeparator()
+        toolsMenu.addAction(self.preferencesAction)
+        
+        # Help Menu
+        helpMenu = menuBar.addMenu("Help")
+        helpMenu.addAction(self.helpAction)
 
     #GETTER FUNCTIONS
     def getAllDeviceNames(self):
@@ -465,10 +429,9 @@ class mainProgram(QMainWindow):
         with open(self.matListFileName,'w') as outfile:
             json.dump(self.developOutputDictionary(),outfile)
     def save(self):
-        if self.newFile:
+        if self.matListFileName == 'newFile.json':
             self.matListFileName = QFileDialog.getSaveFileName(filter="*.json")[0]
             self.pdfFileName = os.path.splitext(self.matListFileName)[0]+'.pdf'
-            self.newFile = False
         self.saveJSONFile()
         self.makePDF()
         if self.includeCutsheetsCheckBox.isChecked() == True:
@@ -478,35 +441,44 @@ class mainProgram(QMainWindow):
         message.setText(f'PDF and JSON saved in {os.path.split(self.matListFileName)[0]}')
         message.exec()
     def saveAs(self):
-        self.newFile = True
+        self.matListFileName = 'newFile.json'
         self.save()
 
     #MENU FUNCTIONS
     def addItem(self):
-        if self.addItemSelect.currentText() not in [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]:
-            self.tableWidget.insertRow(self.tableWidget.rowCount())
-            for panelIndex in range(self.tableWidget.columnCount()):
-                self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1,panelIndex,customTableWidgetItem(self.signals, self.tableWidget, coordinates=(self.tableWidget.rowCount()-1,panelIndex)))
-                self.tableWidget.cellWidget(self.tableWidget.rowCount()-1,panelIndex).showDevices = True
-            self.uniqueItemNumbers.append(self.addItemSelect.currentText())
-        self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
-        self.refreshCells()
-        self.saved = False
+        """Open dialog to select multiple items to add"""
+        addItemDialog_window = addItemDialog(self.masterMatList, self.uniqueItemNumbers)
+        if addItemDialog_window.exec() == QDialog.Accepted:
+            for itemToAdd in addItemDialog_window.selectedItems:
+                self.tableWidget.insertRow(self.tableWidget.rowCount())
+                for panelIndex in range(self.tableWidget.columnCount()):
+                    self.tableWidget.setCellWidget(self.tableWidget.rowCount()-1, panelIndex, 
+                                                   customTableWidgetItem(self.signals, self.tableWidget, 
+                                                                       coordinates=(self.tableWidget.rowCount()-1, panelIndex)))
+                    self.tableWidget.cellWidget(self.tableWidget.rowCount()-1, panelIndex).showDevices = True
+                self.uniqueItemNumbers.append(itemToAdd)
+            
+            self.tableWidget.setVerticalHeaderLabels(self.uniqueItemNumbers)
+            self.refreshCells()
+            self.saved = False
+    
     def updateAddRowButton(self):
-        self.addItemButton.setText('Add Item: '+self.addItemSelect.currentText())
-    def addPanel(self):        
-        self.panelNames.append(self.newPanelName.text())
-        self.panelDescriptions.append(self.newPanelDescription.text())
-        self.tableWidget.insertColumn(self.tableWidget.columnCount())
-        for row in range(self.tableWidget.rowCount()):
-            cell = customTableWidgetItem(self.signals,self.tableWidget,coordinates=(row,self.tableWidget.columnCount()-1))
-            cell.showDevices = True
-            self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
-        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
-        self.newPanelName.setText('')
-        self.newPanelDescription.setText('')
-        self.refreshCells()
-        self.saved = False
+        self.addItemButton.setText('Add Items')
+    def addPanel(self):
+        addPanelDialog_window = addPanelDialog(self.panelNames)
+        if addPanelDialog_window.exec() == QDialog.Accepted:
+            panelName = addPanelDialog_window.panelName
+            panelDescription = addPanelDialog_window.panelDescription
+            self.panelNames.append(panelName)
+            self.panelDescriptions.append(panelDescription)
+            self.tableWidget.insertColumn(self.tableWidget.columnCount())
+            for row in range(self.tableWidget.rowCount()):
+                cell = customTableWidgetItem(self.signals,self.tableWidget,coordinates=(row,self.tableWidget.columnCount()-1))
+                cell.showDevices = True
+                self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
+            self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
+            self.refreshCells()
+            self.saved = False
     def delete(self):
         self.deleteDialog = deleteItem(self.uniqueItemNumbers,self.panelNames)
         self.deleteDialog.exec()
@@ -529,13 +501,17 @@ class mainProgram(QMainWindow):
 
 
 
-    def renamePanel(self):
-        newPanelName, ok = QInputDialog.getText(None, "Rename Panel:", "Rename Panel:")
-        newPanelDescription, ok2 = QInputDialog.getText(None, "New Panel Description:", "Panel Description:")
-        self.panelNames[self.currentlySelectedCell[1]] = newPanelName
-        self.panelDescriptions[self.currentlySelectedCell[1]] = newPanelDescription
-        self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
-        self.saved = False
+    def renamePanelFromHeader(self, columnIndex):
+        """Rename panel when column header is double-clicked"""
+        currentName = self.panelNames[columnIndex]
+        currentDesc = self.panelDescriptions[columnIndex] if columnIndex < len(self.panelDescriptions) else ""
+        
+        renamePanelDialog_window = renamePanelDialog(currentName, currentDesc, self.panelNames)
+        if renamePanelDialog_window.exec() == QDialog.Accepted:
+            self.panelNames[columnIndex] = renamePanelDialog_window.panelName
+            self.panelDescriptions[columnIndex] = renamePanelDialog_window.panelDescription
+            self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
+            self.saved = False
     def addLoose(self):
         if not self.loosePanelPresent:
             self.panelNames.append('Loose and Not Mounted')
@@ -544,7 +520,6 @@ class mainProgram(QMainWindow):
                 cell = customTableWidgetItem(self.signals,self.tableWidget, coordinates=(row,self.tableWidget.columnCount()-1))
                 self.tableWidget.setCellWidget(row,self.tableWidget.columnCount()-1,cell)
             self.tableWidget.setHorizontalHeaderLabels(self.panelNames)
-            self.newPanelName.setText('')
             self.refreshCells()
             self.saved = False
             self.loosePanelPresent = True
@@ -582,6 +557,8 @@ class mainProgram(QMainWindow):
 
     #EVENT INTERCEPTION FUNCTIONS
     def closeEvent(self,event):
+        #if self.data != self.developOutputDictionary():
+        #    print("Changes detected")
         if self.saved == False:
             close = QMessageBox.question(self,'QUIT','Quit Without Saving?',QMessageBox.Yes|QMessageBox.No,QMessageBox.No)
             if close == QMessageBox.Yes:
@@ -600,9 +577,6 @@ class mainProgram(QMainWindow):
         self.currentlySelectedCell = (self.tableWidget.currentRow(),self.tableWidget.currentColumn())
         if self.tableWidget.rowCount()>0:
             items = [self.tableWidget.verticalHeaderItem(row).text() for row in range(self.tableWidget.rowCount())]
-            #self.deleteRowButton.setText('Delete Item: '+items[self.currentlySelectedCell[0]])
-        #self.deletePanelButton.setText('Delete Panel: '+self.panelNames[self.currentlySelectedCell[1]])
-        self.renamePanelButton.setText('Rename Panel: '+self.panelNames[self.currentlySelectedCell[1]])
 
 
     #PDF FUNCTIONS ----------- MAKE THESE A DISTINCT CLASS???
